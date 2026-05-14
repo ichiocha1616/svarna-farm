@@ -422,4 +422,239 @@ function renderLogTab() {
   let kpiHtml = '';
   if (entries.length > 0) {
     kpiHtml = `<div class="kpi-grid fade-in">
-      <
+      <div class="kpi">
+        <div class="kpi-lbl">HDP Terakhir</div>
+        <div class="kpi-val" style="font-size:32px;color:${m.color}">${lHDP.toFixed(1)}<span style="font-size:16px">%</span></div>
+        <span class="badge" style="background:${m.bg};color:${m.color}">${m.label}</span>
+        <div class="progress-wrap">
+          <div class="progress-meta"><span>0%</span><span style="color:${m.color}">55% target</span></div>
+          <div class="progress-bg"><div class="progress-bar" style="width:${prog}%;background:linear-gradient(90deg,${m.color}88,${m.color})"></div></div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">HPP Terakhir</div>
+        ${lHPP ? `
+          <div class="kpi-val" style="font-size:17px;color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">${fRp(lHPP)}</div>
+          <div class="kpi-sub">/kg telur</div>
+          <span class="badge" style="background:${lHPP<=FLOOR_PRICE?'var(--badge-green)':'rgba(224,85,85,.12)'};color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">
+            ${lHPP<=FLOOR_PRICE?'✓ Di bawah floor':'↑ '+fRp(lHPP-FLOOR_PRICE)+' di atas floor'}
+          </span>` : '<div style="color:var(--text3);font-size:24px">—</div>'}
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Rata-rata HDP</div>
+        <div class="kpi-val" style="font-size:30px;color:var(--gold)">${avgHDP}<span style="font-size:15px">%</span></div>
+        <div class="kpi-sub">${entries.length} hari tercatat</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Total Produksi</div>
+        <div class="kpi-val" style="font-size:26px;color:var(--gold)">${entries.reduce((s,e)=>s+e.butir,0).toLocaleString('id-ID')}</div>
+        <div class="kpi-sub">butir</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">${entries.reduce((s,e)=>s+e.kg,0).toFixed(2)} kg kumulatif</div>
+      </div>
+    </div>`;
+  }
+
+  const tableHtml = entries.length > 0 ? `
+    <div class="card fade-in" style="overflow:hidden;padding:0">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border2)" class="card-title">
+        <div class="card-bar"></div><span class="card-label">Riwayat Produksi</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Butir</th><th>Kg</th><th>HDP</th><th>HPP/kg</th><th></th></tr></thead>
+          <tbody>
+            ${[...entries].reverse().map(e=>{
+              const hdp=getHDP(e.butir),hpp=getHPP(e.kg),mt=hdpMeta(hdp);
+              return `<tr>
+                <td class="td-date">${e.date.slice(5)}</td>
+                <td>${e.butir.toLocaleString('id-ID')}</td>
+                <td>${e.kg.toFixed(2)}</td>
+                <td><span class="badge" style="background:${mt.bg};color:${mt.color}">${hdp.toFixed(1)}%</span></td>
+                <td class="${hpp&&hpp<=FLOOR_PRICE?'td-green':'td-red'}" style="font-size:12px;white-space:nowrap">${hpp?fRp(hpp):'—'}</td>
+                <td><button class="del-btn" onclick="delLogEntry('${e.date}')">×</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = `
+    ${kpiHtml}
+    ${entries.length===0?`<div class="empty"><div class="empty-icon">🥚</div><div class="empty-title">Belum ada data produksi</div><div class="empty-sub">Input hari pertama di bawah</div></div>`:''}
+
+    <div class="card" style="padding:18px">
+      <div class="card-title"><div class="card-bar"></div><span class="card-label">Input Produksi</span></div>
+      <div class="field"><label>Tanggal</label><input type="date" id="log-date" class="inp" value="${today()}"></div>
+      <div class="field-row">
+        <div class="field" style="margin:0"><label>Jumlah (butir)</label><input type="number" id="log-butir" class="inp" placeholder="0"></div>
+        <div class="field" style="margin:0"><label>Berat (kg)</label><input type="number" id="log-kg" class="inp" placeholder="0.00" step="0.01"></div>
+      </div>
+      <button class="btn btn-gold" id="log-save-btn" onclick="submitLog()">Simpan Data</button>
+    </div>
+
+    ${tableHtml}
+
+    ${drivePanel()}
+
+    <div class="export-row">
+      <button class="exp-btn" onclick="exportJSON()">📥 Export JSON</button>
+      <button class="exp-btn" onclick="importJSON()">📤 Import JSON</button>
+      <button class="exp-btn" onclick="exportCSV()">📊 Export CSV</button>
+      <button class="exp-btn" onclick="loadFromDrive().then(render)" style="${!state.driveConnected?'opacity:.4;pointer-events:none':''}">☁️ Sync Drive</button>
+    </div>
+
+    <div class="info-grid">
+      ${[['Biaya Harian','Rp 728.101'],['Floor Price','Rp 22.500/kg'],['Break-even HDP','~55%'],['Total Ayam','1.000 ekor']]
+        .map(([k,v])=>`<div class="info-item"><div class="info-k">${k}</div><div class="info-v">${v}</div></div>`).join('')}
+    </div>`;
+}
+
+function renderHargaTab() {
+  const acuan = state._acuan || '';
+  const ref   = acuan ? +acuan : null;
+  const tooLow = ref && ref < FLOOR_PRICE;
+  const base  = tooLow ? FLOOR_PRICE : ref;
+  const grosir = base ? base + SPREAD_G : null;
+  const eceran = base ? base + SPREAD_E : null;
+  const hist  = state.priceHistory;
+
+  const broadcastTxt = grosir && eceran
+    ? `🥚 *Harga Telur Svarna Farm*\n📅 ${todayFmt()}\n\n🏷 *Grosir* (min. 5 tray / ±9 kg)\n    ${fRp(grosir)}/kg\n\n🛒 *Eceran*\n    ${fRp(eceran)}/kg\n\n📦 Telur segar langsung dari kandang\n📍 Tuwiri Wetan — antar ke rumah\n📱 Order via WA: [nomor]\n\n_Stok terbatas, pesan sekarang!_ 🐓` : '';
+
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="padding:18px">
+      <div class="card-title"><div class="card-bar"></div><span class="card-label">Harga Acuan Peternakan</span></div>
+      <div class="field"><label>Tanggal</label><input type="date" id="harga-date" class="inp" value="${today()}"></div>
+      <div class="field"><label>Harga acuan (Rp/kg)</label>
+        <input type="number" id="acuan-inp" class="inp inp-lg" placeholder="Contoh: 23000" value="${acuan}" oninput="onAcuanChange(this.value)">
+      </div>
+      ${ref ? `<div class="alert ${tooLow?'alert-warn':'alert-ok'}">${tooLow?'⚠️ Acuan di bawah floor Rp 22.500 — harga dihitung dari floor.':'✓ Acuan valid, margin semua tier aman.'}</div>` : ''}
+      <button class="btn ${state._priceSaved?'btn-ok':'btn-gold'}" onclick="submitPrice()">${state._priceSaved?'✓ Tersimpan ke Riwayat':'Simpan Harga Hari Ini'}</button>
+    </div>
+
+    ${grosir && eceran ? `
+    <div class="price-grid fade-in">
+      <div class="price-card" style="background:${state.dark?'linear-gradient(135deg,#1a3022,#1f3a28)':'linear-gradient(135deg,#fff8ea,#fff3d6)'};border:1px solid var(--border)">
+        <div class="price-lbl">🏷 Grosir</div>
+        <div class="price-val" style="color:var(--gold)">${fRp(grosir)}</div>
+        <div class="price-unit">/kg</div>
+        <div class="price-tag">Min. 5 tray (±9 kg)</div>
+      </div>
+      <div class="price-card" style="background:${state.dark?'linear-gradient(135deg,#142a1e,#193322)':'linear-gradient(135deg,#f0faf4,#e4f5ea)'};border:1px solid rgba(76,175,125,.25)">
+        <div class="price-lbl">🛒 Eceran</div>
+        <div class="price-val" style="color:var(--green)">${fRp(eceran)}</div>
+        <div class="price-unit">/kg</div>
+        <div class="price-tag green">Di bawah 5 tray</div>
+      </div>
+    </div>
+    <div class="selisih-row">
+      <span style="font-size:12px;color:var(--text2)">Selisih Grosir ↔ Eceran</span>
+      <span style="font-size:13px;font-weight:700;color:var(--gold);font-family:'Playfair Display',serif">${fRp(eceran-grosir)}</span>
+    </div>` : ''}
+
+    ${broadcastTxt ? `
+    <div class="card fade-in" style="overflow:hidden;padding:0">
+      <div class="broadcast-header">
+        <div class="card-title" style="margin:0"><div class="card-bar green"></div><span class="card-label">Template Broadcast WA</span></div>
+        <button class="copy-btn" id="copy-btn" onclick="copyBroadcast()">${state._copied?'✓ Disalin':'Salin'}</button>
+      </div>
+      <div class="broadcast-body" id="broadcast-txt">${broadcastTxt}</div>
+    </div>` : ''}
+
+    ${hist.length > 0 ? `
+    <div class="card fade-in" style="overflow:hidden;padding:0">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border2)" class="card-title">
+        <div class="card-bar"></div><span class="card-label">Riwayat Harga</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Acuan</th><th>Grosir</th><th>Eceran</th></tr></thead>
+          <tbody>
+            ${[...hist].reverse().map(h=>{
+              const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;
+              return `<tr>
+                <td class="td-date">${h.date.slice(5)}</td>
+                <td>${fRp(h.acuan)}</td>
+                <td>${fRp(b+SPREAD_G)}</td>
+                <td class="td-green">${fRp(b+SPREAD_E)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    ${!ref ? `<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Masukkan harga acuan</div><div class="empty-sub">Harga Grosir & Eceran otomatis terhitung</div></div>` : ''}
+
+    ${drivePanel()}
+
+    <div class="export-row">
+      <button class="exp-btn" onclick="exportJSON()">📥 Export JSON</button>
+      <button class="exp-btn" onclick="importJSON()">📤 Import JSON</button>
+    </div>`;
+}
+
+function drivePanel() {
+  return `<div id="drive-panel">
+    <div id="drive-info">
+      <strong>${state.driveConnected ? '☁️ Google Drive Terhubung' : '☁️ Google Drive'}</strong>
+      <span id="drive-status-txt">${state.driveConnected ? (state.saving?'⏳ Menyimpan...':'Backup otomatis aktif') : 'Sambungkan untuk backup otomatis'}</span>
+    </div>
+    <button class="hbtn" onclick="connectDrive()" style="${state.driveConnected?'color:var(--green);border-color:var(--green)':''}">
+      ${state.driveConnected ? '✓ Terhubung' : 'Sambungkan'}
+    </button>
+  </div>`;
+}
+
+// ── FORM HANDLERS ─────────────────────────────────
+function submitLog() {
+  const date  = document.getElementById('log-date')?.value;
+  const butir = document.getElementById('log-butir')?.value;
+  const kg    = document.getElementById('log-kg')?.value;
+  if (!date || !butir || !kg) return;
+  addLogEntry(date, butir, kg);
+  const btn = document.getElementById('log-save-btn');
+  if (btn) { btn.textContent = '✓ Tersimpan'; btn.className = 'btn btn-ok'; }
+  setTimeout(() => renderLogTab(), 1500);
+}
+
+function onAcuanChange(v) {
+  state._acuan = v;
+  state._priceSaved = false;
+  state._copied = false;
+  renderHargaTab();
+  setTimeout(() => { const i = document.getElementById('acuan-inp'); if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);} }, 10);
+}
+
+function submitPrice() {
+  const v = state._acuan;
+  const d = document.getElementById('harga-date')?.value || today();
+  if (!v) return;
+  addPriceEntry(v, d);
+  state._priceSaved = true;
+  renderHargaTab();
+  setTimeout(() => { state._priceSaved = false; }, 2000);
+}
+
+function copyBroadcast() {
+  const txt = document.getElementById('broadcast-txt')?.innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    state._copied = true;
+    const btn = document.getElementById('copy-btn');
+    if (btn) { btn.textContent = '✓ Disalin'; btn.className = 'copy-btn ok'; }
+    setTimeout(() => { state._copied = false; }, 2000);
+  });
+}
+
+// ── INIT ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  LS.load();
+  applyTheme();
+  render();
+  setTimeout(initDrive, 1000);
+});
+</script>
+</body>
+</html>
