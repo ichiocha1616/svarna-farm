@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Svarna Farm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -36,29 +36,28 @@ input[type=number]{-moz-appearance:textfield}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-/* HEADER */
 #header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 16px 0;position:sticky;top:0;z-index:10;box-shadow:var(--shadow-sm)}
 #header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 #logo{display:flex;align-items:center;gap:8px}
 #logo-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)}
 #logo-sub{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding-left:28px;margin-top:2px}
-#header-right{display:flex;gap:8px;align-items:center}
 .hbtn{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 11px;cursor:pointer;font-size:11px;font-weight:500;color:var(--text2);transition:all .2s;font-family:'DM Sans',sans-serif}
 .hbtn:hover{border-color:var(--gold);color:var(--gold)}
-#drive-status{font-size:9px;padding:3px 8px;border-radius:10px;font-weight:600;letter-spacing:.5px}
-#tabs{display:flex;gap:4px}
-.tab-btn{background:transparent;color:var(--text3);border:none;border-bottom:2px solid transparent;padding:8px 14px 10px;font-size:12px;font-weight:400;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:6px 6px 0 0;transition:all .15s;display:flex;align-items:center;gap:5px}
+#tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab-btn{background:transparent;color:var(--text3);border:none;border-bottom:2px solid transparent;padding:8px 12px 10px;font-size:11px;font-weight:400;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:6px 6px 0 0;transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0}
 .tab-btn.active{background:var(--tab-bg);color:var(--gold);font-weight:600;border-bottom:2px solid var(--gold)}
 
-/* CONTENT */
 #content{padding:16px;display:flex;flex-direction:column;gap:14px}
 
-/* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm)}
+.card-p{padding:18px}
 .card-title{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-.card-bar{width:3px;height:18px;background:var(--gold);border-radius:2px}
+.card-bar{width:3px;height:18px;background:var(--gold);border-radius:2px;flex-shrink:0}
 .card-bar.green{background:var(--green)}
+.card-bar.amber{background:var(--amber)}
 .card-label{font-size:12px;font-weight:600;color:var(--text1);letter-spacing:.5px;text-transform:uppercase}
+
 .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow-sm);transition:all .25s}
 .kpi:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
@@ -66,12 +65,7 @@ input[type=number]{-moz-appearance:textfield}
 .kpi-val{font-family:'Playfair Display',serif;font-weight:700;line-height:1}
 .kpi-sub{font-size:10px;color:var(--text3);margin-top:4px}
 .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.4px;margin-top:8px}
-.progress-wrap{margin-top:12px}
-.progress-meta{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:4px}
-.progress-bg{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
-.progress-bar{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
 
-/* FORM */
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .field label{font-size:11px;font-weight:500;color:var(--text2)}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -80,309 +74,297 @@ input[type=number]{-moz-appearance:textfield}
 .inp-lg{font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.5px}
 .btn{width:100%;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.3px;transition:all .2s}
 .btn:hover{transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
 .btn-gold{background:var(--gold);color:#0b1a10}
 .btn-ok{background:var(--badge-green);color:var(--green)}
 
-/* ALERT */
 .alert{padding:10px 12px;border-radius:10px;font-size:12px;font-weight:500;margin-bottom:12px}
 .alert-ok{background:var(--badge-green);border:1px solid rgba(76,175,125,.2);color:var(--green)}
 .alert-warn{background:rgba(224,85,85,.08);border:1px solid rgba(224,85,85,.2);color:var(--red)}
+.alert-info{background:var(--badge-gold);border:1px solid rgba(212,168,50,.2);color:var(--gold)}
 
-/* TABLE */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--surface2)}
-th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
-td{padding:11px 14px;font-size:13px;color:var(--text1)}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+td{padding:10px 12px;font-size:12px;color:var(--text1)}
 tbody tr{border-top:1px solid var(--border2);transition:background .15s}
 tbody tr:hover{background:var(--surface2)}
-.td-date{font-weight:600;color:var(--gold);font-size:12px;white-space:nowrap}
+.td-date{font-weight:600;color:var(--gold);font-size:11px;white-space:nowrap}
 .td-green{color:var(--green);font-weight:600}
 .td-red{color:var(--red)}
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;border-radius:4px;transition:color .15s}
 .del-btn:hover{color:var(--red)}
 
-/* PRICE CARDS */
 .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.price-card{border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);transition:all .25s;cursor:default}
+.price-card{border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);transition:all .25s}
 .price-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .price-lbl{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:12px}
 .price-val{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;line-height:1}
 .price-unit{font-size:10px;color:var(--text3);margin-top:4px;margin-bottom:12px}
-.price-tag{background:var(--badge-gold);border-radius:8px;padding:6px 8px;font-size:10px;font-weight:500;color:var(--gold)}
-.price-tag.green{background:var(--badge-green);color:var(--green)}
+.price-tag{border-radius:8px;padding:6px 8px;font-size:10px;font-weight:500}
 .selisih-row{background:var(--surface2);border-radius:10px;padding:11px 14px;border:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
 
-/* BROADCAST */
 .broadcast-header{padding:13px 16px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
 .broadcast-body{padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.9;white-space:pre-wrap;font-family:monospace;background:var(--surface2)}
 .copy-btn{background:var(--surface3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
 .copy-btn.ok{background:var(--badge-green);color:var(--green)}
 
-/* FOOTER INFO */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .info-item{background:var(--surface2);border-radius:10px;padding:10px 12px;border:1px solid var(--border2)}
 .info-k{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
 .info-v{font-size:12px;font-weight:600;color:var(--text2)}
 
-/* DRIVE PANEL */
 #drive-panel{padding:12px 14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;gap:10px}
-#drive-info{font-size:11px;color:var(--text2)}
 #drive-info strong{color:var(--text1);display:block;margin-bottom:2px;font-size:12px}
 #drive-info span{font-size:10px;color:var(--text3)}
 
-/* EXPORT ROW */
 .export-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .exp-btn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px}
 .exp-btn:hover{border-color:var(--gold);color:var(--gold)}
 
-/* EMPTY STATE */
-.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-icon{font-size:32px;margin-bottom:12px}
 .empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px}
 .empty-sub{font-size:12px}
+
+/* POS */
+.type-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.type-btn{border:1.5px solid var(--border);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text3)}
+.type-btn.active-g{border-color:var(--gold);background:var(--badge-gold);color:var(--gold)}
+.type-btn.active-e{border-color:var(--green);background:var(--badge-green);color:var(--green)}
+.pos-price-display{background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;border:1px solid var(--border2)}
+.pos-price-lbl{font-size:10px;color:var(--text3);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase}
+.pos-price-val{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--gold)}
+.pos-total{background:var(--surface3);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.sale-type-g{color:var(--gold);background:var(--badge-gold);border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700}
+.sale-type-e{color:var(--green);background:var(--badge-green);border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700}
+.summary-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sum-card{background:var(--surface2);border-radius:12px;padding:12px;border:1px solid var(--border2);text-align:center}
+.sum-lbl{font-size:9px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.sum-val{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)}
+.sum-sub{font-size:10px;color:var(--text3);margin-top:2px}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeIn .3s ease both}
 </style>
 </head>
 <body>
-
 <div id="header">
   <div id="header-top">
     <div>
       <div id="logo"><span style="font-size:20px">🥚</span><span id="logo-name">Svarna Farm</span></div>
       <div id="logo-sub">Sistem Manajemen Telur</div>
     </div>
-    <div id="header-right">
-      <button class="hbtn" onclick="toggleTheme()" id="theme-btn">☀️ <span id="theme-label">Terang</span></button>
-    </div>
+    <button class="hbtn" onclick="toggleTheme()" id="theme-btn">☀️ <span>Terang</span></button>
   </div>
   <div id="tabs">
-    <button class="tab-btn active" onclick="switchTab('log')" id="tab-log">📋 Log Produksi</button>
-    <button class="tab-btn" onclick="switchTab('harga')" id="tab-harga">💰 Kalkulator Harga</button>
+    <button class="tab-btn active" onclick="switchTab('log')"   id="tab-log">📋 Log Produksi</button>
+    <button class="tab-btn"        onclick="switchTab('harga')" id="tab-harga">💰 Kalkulator</button>
+    <button class="tab-btn"        onclick="switchTab('jual')"  id="tab-jual">🧾 Penjualan</button>
   </div>
 </div>
-
 <div id="content"></div>
 
 <script>
-// ── CONSTANTS ──────────────────────────────────
-const CLIENT_ID = '27189579627-a1lefq7qp3qnrcoofi6l50ffib1a8ile.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+// ── CONFIG ────────────────────────────────────────
+const CLIENT_ID   = '27189579627-a1lefq7qp3qnrcoofi6l50ffib1a8ile.apps.googleusercontent.com';
+const SCOPE       = 'https://www.googleapis.com/auth/drive.file';
 const TOTAL_BIRDS = 1000;
 const DAILY_COST  = 728101;
 const FLOOR_PRICE = 22500;
 const SPREAD_G    = 500;
 const SPREAD_E    = 1500;
 const FILE_NAME   = 'svarna-farm-backup.json';
+const HPP_EST     = 21250;
 
-// ── STATE ───────────────────────────────────────
-let state = {
-  tab: 'log',
-  dark: true,
-  logEntries:   [],
-  priceHistory: [],
-  accessToken:  null,
-  driveFileId:  null,
-  driveConnected: false,
-  lastSaved: null,
-  saving: false,
+// ── STATE ─────────────────────────────────────────
+const S = {
+  tab:'log', dark:true,
+  logEntries:[], priceHistory:[], salesEntries:[],
+  accessToken:null, driveFileId:null, driveConnected:false,
+  lastSaved:null, saving:false,
+  // harga tab live state (not re-rendered on type)
+  h_acuan:'', h_saved:false, h_copied:false,
+  // jual tab
+  j_type:'eceran', j_kg:'', j_buyer:'', j_note:'', j_saved:false,
 };
 
-let saveTimer = null;
-let tokenClient = null;
+let saveTimer=null, tokenClient=null;
 
-// ── HELPERS ─────────────────────────────────────
-const fRp   = n => 'Rp\u00A0' + Math.round(n).toLocaleString('id-ID');
-const getHDP = b => (b / TOTAL_BIRDS) * 100;
-const getHPP = k => k > 0 ? DAILY_COST / k : null;
-const hdpMeta = h => {
-  if (h >= 70) return {label:'Peak 🔥',   color:'var(--gold)',  bg:'var(--badge-gold)'};
-  if (h >= 55) return {label:'Break-even ✓',color:'var(--green)',bg:'var(--badge-green)'};
-  if (h >= 40) return {label:'Mendekati', color:'var(--amber)', bg:'var(--badge-amber)'};
-  return              {label:'Ramp-up',   color:'var(--text3)', bg:'var(--badge-muted)'};
+// ── HELPERS ───────────────────────────────────────
+const fRp    = n => 'Rp\u00A0' + Math.round(n).toLocaleString('id-ID');
+const getHDP = b => (b/TOTAL_BIRDS)*100;
+const getHPP = k => k>0 ? DAILY_COST/k : null;
+const today  = () => new Date().toISOString().slice(0,10);
+const fmtDate= d => { const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
+const todayFmt=()=> new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+const hdpMeta= h => {
+  if(h>=70) return {label:'Peak 🔥',   color:'var(--gold)', bg:'var(--badge-gold)'};
+  if(h>=55) return {label:'Break-even ✓',color:'var(--green)',bg:'var(--badge-green)'};
+  if(h>=40) return {label:'Mendekati', color:'var(--amber)',bg:'var(--badge-amber)'};
+  return           {label:'Ramp-up',   color:'var(--text3)',bg:'var(--badge-muted)'};
 };
-const today = () => new Date().toISOString().slice(0,10);
-const todayFmt = () => new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+const priceForDate = (d, type) => {
+  const entry = [...S.priceHistory].reverse().find(h => h.date <= d);
+  if (!entry) return null;
+  const base = entry.acuan < FLOOR_PRICE ? FLOOR_PRICE : entry.acuan;
+  return type === 'grosir' ? base + SPREAD_G : base + SPREAD_E;
+};
 
-// ── LOCAL STORAGE ────────────────────────────────
+// ── LOCAL STORAGE ─────────────────────────────────
 const LS = {
   save() {
-    localStorage.setItem('sf-log',   JSON.stringify(state.logEntries));
-    localStorage.setItem('sf-price', JSON.stringify(state.priceHistory));
-    localStorage.setItem('sf-theme', state.dark ? 'dark' : 'light');
+    localStorage.setItem('sf-log',   JSON.stringify(S.logEntries));
+    localStorage.setItem('sf-price', JSON.stringify(S.priceHistory));
+    localStorage.setItem('sf-sales', JSON.stringify(S.salesEntries));
+    localStorage.setItem('sf-theme', S.dark?'dark':'light');
   },
   load() {
-    try { state.logEntries   = JSON.parse(localStorage.getItem('sf-log')   || '[]'); } catch(_){}
-    try { state.priceHistory = JSON.parse(localStorage.getItem('sf-price') || '[]'); } catch(_){}
-    state.dark = (localStorage.getItem('sf-theme') || 'dark') === 'dark';
+    try { S.logEntries   = JSON.parse(localStorage.getItem('sf-log')   ||'[]'); }catch(_){}
+    try { S.priceHistory = JSON.parse(localStorage.getItem('sf-price') ||'[]'); }catch(_){}
+    try { S.salesEntries = JSON.parse(localStorage.getItem('sf-sales') ||'[]'); }catch(_){}
+    S.dark = (localStorage.getItem('sf-theme')||'dark') === 'dark';
   }
 };
 
-// ── GOOGLE DRIVE ─────────────────────────────────
+// ── GOOGLE DRIVE ──────────────────────────────────
 function initDrive() {
   if (!window.google) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
-    callback: async (resp) => {
+    client_id: CLIENT_ID, scope: SCOPE,
+    callback: async resp => {
       if (resp.access_token) {
-        state.accessToken = resp.access_token;
-        state.driveConnected = true;
+        S.accessToken = resp.access_token;
+        S.driveConnected = true;
         await loadFromDrive();
         render();
       }
     }
   });
 }
-
 function connectDrive() {
-  if (!tokenClient) { initDrive(); }
+  if (!tokenClient) initDrive();
   if (tokenClient) tokenClient.requestAccessToken({prompt:''});
 }
-
 async function driveFetch(url, opts={}) {
-  const res = await fetch(url, {
-    ...opts,
-    headers: { Authorization: `Bearer ${state.accessToken}`, ...(opts.headers||{}) }
-  });
-  if (res.status === 401) { state.accessToken = null; state.driveConnected = false; render(); return null; }
+  const res = await fetch(url, {...opts, headers:{Authorization:`Bearer ${S.accessToken}`, ...(opts.headers||{})}});
+  if (res.status===401) { S.accessToken=null; S.driveConnected=false; render(); return null; }
   return res;
 }
-
 async function findDriveFile() {
-  const res = await driveFetch(
-    `https://www.googleapis.com/drive/v3/files?q=name%3D'${FILE_NAME}'%20and%20trashed%3Dfalse&fields=files(id)&spaces=drive`
-  );
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=name%3D'${FILE_NAME}'%20and%20trashed%3Dfalse&fields=files(id)&spaces=drive`);
   if (!res) return null;
   const d = await res.json();
   return d.files?.[0]?.id || null;
 }
-
 async function saveToDrive() {
-  if (!state.driveConnected || !state.accessToken) return;
-  state.saving = true;
-  updateDriveStatus();
+  if (!S.driveConnected||!S.accessToken) return;
+  S.saving=true; updateDriveStatus();
   try {
-    const data = { logEntries: state.logEntries, priceHistory: state.priceHistory, savedAt: new Date().toISOString() };
+    const data = {logEntries:S.logEntries, priceHistory:S.priceHistory, salesEntries:S.salesEntries, savedAt:new Date().toISOString()};
     const content = JSON.stringify(data);
-    const fileId = state.driveFileId || await findDriveFile();
+    const fileId = S.driveFileId || await findDriveFile();
     if (fileId) {
-      state.driveFileId = fileId;
-      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: content
-      });
+      S.driveFileId=fileId;
+      await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+        {method:'PATCH', headers:{'Content-Type':'application/json'}, body:content});
     } else {
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify({name:FILE_NAME,mimeType:'application/json'})],{type:'application/json'}));
-      form.append('file',     new Blob([content],{type:'application/json'}));
-      const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-        method: 'POST', body: form
-      });
-      if (res) { const d = await res.json(); state.driveFileId = d.id; }
+      form.append('file', new Blob([content],{type:'application/json'}));
+      const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',body:form});
+      if (res) { const d=await res.json(); S.driveFileId=d.id; }
     }
-    state.lastSaved = new Date();
+    S.lastSaved = new Date();
   } catch(e) { console.error(e); }
-  state.saving = false;
-  updateDriveStatus();
+  S.saving=false; updateDriveStatus();
 }
-
 async function loadFromDrive() {
-  if (!state.driveConnected || !state.accessToken) return;
+  if (!S.driveConnected||!S.accessToken) return;
   const fileId = await findDriveFile();
   if (!fileId) return;
-  state.driveFileId = fileId;
+  S.driveFileId=fileId;
   const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
   if (!res) return;
   try {
     const d = await res.json();
-    if (d.logEntries)   state.logEntries   = d.logEntries;
-    if (d.priceHistory) state.priceHistory = d.priceHistory;
+    if (d.logEntries)   S.logEntries   = d.logEntries;
+    if (d.priceHistory) S.priceHistory = d.priceHistory;
+    if (d.salesEntries) S.salesEntries = d.salesEntries;
     LS.save();
   } catch(e) {}
 }
-
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveToDrive(), 2500);
-}
-
+function scheduleSave() { clearTimeout(saveTimer); saveTimer=setTimeout(()=>saveToDrive(),2500); }
 function updateDriveStatus() {
   const el = document.getElementById('drive-status-txt');
   if (!el) return;
-  if (!state.driveConnected) { el.textContent = ''; return; }
-  if (state.saving) { el.textContent = '⏳ Menyimpan...'; return; }
-  if (state.lastSaved) {
-    const t = state.lastSaved.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-    el.textContent = `✓ Tersimpan ${t}`;
-  }
+  if (!S.driveConnected) { el.textContent=''; return; }
+  if (S.saving) { el.textContent='⏳ Menyimpan...'; return; }
+  if (S.lastSaved) el.textContent=`✓ Tersimpan ${S.lastSaved.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}`;
 }
 
-// ── THEME ────────────────────────────────────────
-function toggleTheme() {
-  state.dark = !state.dark;
-  applyTheme();
-  LS.save();
-}
+// ── THEME ─────────────────────────────────────────
+function toggleTheme() { S.dark=!S.dark; applyTheme(); LS.save(); }
 function applyTheme() {
-  document.body.classList.toggle('light', !state.dark);
-  const btn = document.getElementById('theme-btn');
-  const lbl = document.getElementById('theme-label');
-  if (btn) btn.innerHTML = state.dark ? '☀️ <span id="theme-label">Terang</span>' : '🌙 <span id="theme-label">Gelap</span>';
+  document.body.classList.toggle('light',!S.dark);
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.innerHTML = S.dark ? '☀️ <span>Terang</span>' : '🌙 <span>Gelap</span>';
 }
 
-// ── TAB ──────────────────────────────────────────
+// ── TABS ──────────────────────────────────────────
 function switchTab(t) {
-  state.tab = t;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  S.tab=t;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   render();
 }
 
-// ── DATA OPS ─────────────────────────────────────
-function addLogEntry(date, butir, kg) {
-  const entry = {date, butir:+butir, kg:+kg};
-  const idx = state.logEntries.findIndex(e => e.date === date);
-  if (idx >= 0) state.logEntries[idx] = entry;
-  else state.logEntries = [...state.logEntries, entry].sort((a,b) => a.date.localeCompare(b.date));
+// ── DATA OPS ──────────────────────────────────────
+function addLog(date,butir,kg) {
+  const e={date,butir:+butir,kg:+kg};
+  const i=S.logEntries.findIndex(x=>x.date===date);
+  if(i>=0) S.logEntries[i]=e; else S.logEntries=[...S.logEntries,e].sort((a,b)=>a.date.localeCompare(b.date));
   LS.save(); scheduleSave();
 }
-function delLogEntry(date) {
-  state.logEntries = state.logEntries.filter(e => e.date !== date);
-  LS.save(); scheduleSave(); renderLogTab();
-}
-function addPriceEntry(acuan, date) {
-  const d = date || today();
-  const entry = {date:d, acuan:+acuan};
-  const idx = state.priceHistory.findIndex(h => h.date === d);
-  if (idx >= 0) state.priceHistory[idx] = entry;
-  else state.priceHistory = [...state.priceHistory, entry].sort((a,b) => a.date.localeCompare(b.date));
-  LS.save(); scheduleSave();
-}
+function delLog(date) { S.logEntries=S.logEntries.filter(e=>e.date!==date); LS.save(); scheduleSave(); renderLogTab(); }
 
-// ── EXPORT / IMPORT ──────────────────────────────
+function addPrice(acuan,date) {
+  const d=date||today();
+  const e={date:d,acuan:+acuan};
+  const i=S.priceHistory.findIndex(h=>h.date===d);
+  if(i>=0) S.priceHistory[i]=e; else S.priceHistory=[...S.priceHistory,e].sort((a,b)=>a.date.localeCompare(b.date));
+  LS.save(); scheduleSave();
+}
+function delPrice(date) { S.priceHistory=S.priceHistory.filter(h=>h.date!==date); LS.save(); scheduleSave(); renderHargaTab(); }
+
+function addSale(date,type,buyer,kg,pricePerKg,note) {
+  const id = Date.now().toString();
+  const total = +kg * +pricePerKg;
+  S.salesEntries=[...S.salesEntries,{id,date,type,buyer,kg:+kg,pricePerKg:+pricePerKg,total,note}]
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  LS.save(); scheduleSave();
+}
+function delSale(id) { S.salesEntries=S.salesEntries.filter(e=>e.id!==id); LS.save(); scheduleSave(); renderJualTab(); }
+
+// ── EXPORT / IMPORT ───────────────────────────────
 function exportJSON() {
-  const d = {logEntries:state.logEntries, priceHistory:state.priceHistory, exportedAt:new Date().toISOString()};
-  const a = document.createElement('a');
-  a.href = 'data:application/json,' + encodeURIComponent(JSON.stringify(d,null,2));
-  a.download = `svarna-farm-backup-${today()}.json`;
-  a.click();
+  const d={logEntries:S.logEntries,priceHistory:S.priceHistory,salesEntries:S.salesEntries,exportedAt:new Date().toISOString()};
+  const a=document.createElement('a');
+  a.href='data:application/json,'+encodeURIComponent(JSON.stringify(d,null,2));
+  a.download=`svarna-backup-${today()}.json`; a.click();
 }
 function importJSON() {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => {
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
       try {
-        const d = JSON.parse(ev.target.result);
-        if (d.logEntries)   state.logEntries   = d.logEntries;
-        if (d.priceHistory) state.priceHistory = d.priceHistory;
-        LS.save(); scheduleSave(); render();
-        alert('✓ Data berhasil diimport!');
+        const d=JSON.parse(ev.target.result);
+        if(d.logEntries)   S.logEntries=d.logEntries;
+        if(d.priceHistory) S.priceHistory=d.priceHistory;
+        if(d.salesEntries) S.salesEntries=d.salesEntries;
+        LS.save(); scheduleSave(); render(); alert('✓ Data berhasil diimport!');
       } catch(_) { alert('File tidak valid.'); }
     };
     r.readAsText(f);
@@ -390,270 +372,383 @@ function importJSON() {
   inp.click();
 }
 function exportCSV() {
-  const rows = [['Tanggal','Butir','Berat (kg)','HDP (%)','HPP/kg']];
-  state.logEntries.forEach(e => {
-    const hdp = getHDP(e.butir).toFixed(1);
-    const hpp = getHPP(e.kg) ? Math.round(getHPP(e.kg)) : '';
-    rows.push([e.date, e.butir, e.kg, hdp, hpp]);
+  const rows=[['Tanggal','Butir','Berat(kg)','HDP(%)','HPP/kg']];
+  S.logEntries.forEach(e=>{
+    rows.push([e.date,e.butir,e.kg,getHDP(e.butir).toFixed(1),getHPP(e.kg)?Math.round(getHPP(e.kg)):'']);
   });
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = `svarna-farm-log-${today()}.csv`;
-  a.click();
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
+  a.download=`svarna-log-${today()}.csv`; a.click();
 }
 
-// ── RENDER ───────────────────────────────────────
-function render() {
-  applyTheme();
-  if (state.tab === 'log')   renderLogTab();
-  if (state.tab === 'harga') renderHargaTab();
+// ── DRIVE PANEL HTML ──────────────────────────────
+function drivePanel() {
+  return `<div id="drive-panel">
+    <div id="drive-info">
+      <strong>${S.driveConnected?'☁️ Google Drive Terhubung':'☁️ Google Drive'}</strong>
+      <span id="drive-status-txt">${S.driveConnected?(S.saving?'⏳ Menyimpan...':'Backup otomatis aktif'):'Sambungkan untuk backup otomatis'}</span>
+    </div>
+    <button class="hbtn" onclick="connectDrive()" style="${S.driveConnected?'color:var(--green);border-color:var(--green)':''}">
+      ${S.driveConnected?'✓ Terhubung':'Sambungkan'}
+    </button>
+  </div>`;
 }
 
+// ════════════════════════════════════════════════
+// TAB: LOG PRODUKSI
+// ════════════════════════════════════════════════
 function renderLogTab() {
-  const entries = state.logEntries;
-  const latest  = entries[entries.length-1];
-  const lHDP    = latest ? getHDP(latest.butir) : null;
-  const lHPP    = latest ? getHPP(latest.kg)    : null;
-  const avgHDP  = entries.length ? (entries.reduce((s,e)=>s+getHDP(e.butir),0)/entries.length).toFixed(1) : null;
-  const prog    = lHDP ? Math.min((lHDP/55)*100,100) : 0;
-  const m       = lHDP ? hdpMeta(lHDP) : null;
+  const E=S.logEntries, last=E[E.length-1];
+  const lHDP=last?getHDP(last.butir):null, lHPP=last?getHPP(last.kg):null;
+  const avgHDP=E.length?(E.reduce((s,e)=>s+getHDP(e.butir),0)/E.length).toFixed(1):null;
+  const prog=lHDP?Math.min((lHDP/55)*100,100):0, m=lHDP?hdpMeta(lHDP):null;
 
-  let kpiHtml = '';
-  if (entries.length > 0) {
-    kpiHtml = `<div class="kpi-grid fade-in">
+  document.getElementById('content').innerHTML = `
+    ${E.length>0?`<div class="kpi-grid fade-in">
       <div class="kpi">
         <div class="kpi-lbl">HDP Terakhir</div>
         <div class="kpi-val" style="font-size:32px;color:${m.color}">${lHDP.toFixed(1)}<span style="font-size:16px">%</span></div>
         <span class="badge" style="background:${m.bg};color:${m.color}">${m.label}</span>
-        <div class="progress-wrap">
-          <div class="progress-meta"><span>0%</span><span style="color:${m.color}">55% target</span></div>
-          <div class="progress-bg"><div class="progress-bar" style="width:${prog}%;background:linear-gradient(90deg,${m.color}88,${m.color})"></div></div>
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:4px"><span>0%</span><span style="color:${m.color}">55% target</span></div>
+          <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${prog}%;background:linear-gradient(90deg,${m.color}88,${m.color});border-radius:3px;transition:width .8s"></div></div>
         </div>
       </div>
       <div class="kpi">
         <div class="kpi-lbl">HPP Terakhir</div>
-        ${lHPP ? `
-          <div class="kpi-val" style="font-size:17px;color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">${fRp(lHPP)}</div>
-          <div class="kpi-sub">/kg telur</div>
-          <span class="badge" style="background:${lHPP<=FLOOR_PRICE?'var(--badge-green)':'rgba(224,85,85,.12)'};color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">
-            ${lHPP<=FLOOR_PRICE?'✓ Di bawah floor':'↑ '+fRp(lHPP-FLOOR_PRICE)+' di atas floor'}
-          </span>` : '<div style="color:var(--text3);font-size:24px">—</div>'}
+        ${lHPP?`<div class="kpi-val" style="font-size:17px;color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">${fRp(lHPP)}</div>
+        <div class="kpi-sub">/kg telur</div>
+        <span class="badge" style="background:${lHPP<=FLOOR_PRICE?'var(--badge-green)':'rgba(224,85,85,.12)'};color:${lHPP<=FLOOR_PRICE?'var(--green)':'var(--red)'}">
+          ${lHPP<=FLOOR_PRICE?'✓ Di bawah floor':'↑ '+fRp(lHPP-FLOOR_PRICE)+' di atas floor'}</span>`:'<div style="color:var(--text3);font-size:24px">—</div>'}
       </div>
-      <div class="kpi">
-        <div class="kpi-lbl">Rata-rata HDP</div>
+      <div class="kpi"><div class="kpi-lbl">Rata-rata HDP</div>
         <div class="kpi-val" style="font-size:30px;color:var(--gold)">${avgHDP}<span style="font-size:15px">%</span></div>
-        <div class="kpi-sub">${entries.length} hari tercatat</div>
+        <div class="kpi-sub">${E.length} hari tercatat</div>
       </div>
-      <div class="kpi">
-        <div class="kpi-lbl">Total Produksi</div>
-        <div class="kpi-val" style="font-size:26px;color:var(--gold)">${entries.reduce((s,e)=>s+e.butir,0).toLocaleString('id-ID')}</div>
+      <div class="kpi"><div class="kpi-lbl">Total Produksi</div>
+        <div class="kpi-val" style="font-size:26px;color:var(--gold)">${E.reduce((s,e)=>s+e.butir,0).toLocaleString('id-ID')}</div>
         <div class="kpi-sub">butir</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:6px">${entries.reduce((s,e)=>s+e.kg,0).toFixed(2)} kg kumulatif</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px">${E.reduce((s,e)=>s+e.kg,0).toFixed(2)} kg kumulatif</div>
       </div>
-    </div>`;
-  }
+    </div>`:''}
 
-  const tableHtml = entries.length > 0 ? `
-    <div class="card fade-in" style="overflow:hidden;padding:0">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border2)" class="card-title">
-        <div class="card-bar"></div><span class="card-label">Riwayat Produksi</span>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Tanggal</th><th>Butir</th><th>Kg</th><th>HDP</th><th>HPP/kg</th><th></th></tr></thead>
-          <tbody>
-            ${[...entries].reverse().map(e=>{
-              const hdp=getHDP(e.butir),hpp=getHPP(e.kg),mt=hdpMeta(hdp);
-              return `<tr>
-                <td class="td-date">${e.date.slice(5)}</td>
-                <td>${e.butir.toLocaleString('id-ID')}</td>
-                <td>${e.kg.toFixed(2)}</td>
-                <td><span class="badge" style="background:${mt.bg};color:${mt.color}">${hdp.toFixed(1)}%</span></td>
-                <td class="${hpp&&hpp<=FLOOR_PRICE?'td-green':'td-red'}" style="font-size:12px;white-space:nowrap">${hpp?fRp(hpp):'—'}</td>
-                <td><button class="del-btn" onclick="delLogEntry('${e.date}')">×</button></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>` : '';
+    ${E.length===0?`<div class="empty"><div class="empty-icon">🥚</div><div class="empty-title">Belum ada data produksi</div><div class="empty-sub">Input hari pertama di bawah</div></div>`:''}
 
-  document.getElementById('content').innerHTML = `
-    ${kpiHtml}
-    ${entries.length===0?`<div class="empty"><div class="empty-icon">🥚</div><div class="empty-title">Belum ada data produksi</div><div class="empty-sub">Input hari pertama di bawah</div></div>`:''}
-
-    <div class="card" style="padding:18px">
+    <div class="card card-p">
       <div class="card-title"><div class="card-bar"></div><span class="card-label">Input Produksi</span></div>
       <div class="field"><label>Tanggal</label><input type="date" id="log-date" class="inp" value="${today()}"></div>
       <div class="field-row">
         <div class="field" style="margin:0"><label>Jumlah (butir)</label><input type="number" id="log-butir" class="inp" placeholder="0"></div>
         <div class="field" style="margin:0"><label>Berat (kg)</label><input type="number" id="log-kg" class="inp" placeholder="0.00" step="0.01"></div>
       </div>
-      <button class="btn btn-gold" id="log-save-btn" onclick="submitLog()">Simpan Data</button>
+      <button class="btn btn-gold" id="log-btn" onclick="submitLog()">Simpan Data</button>
     </div>
 
-    ${tableHtml}
+    ${E.length>0?`<div class="card fade-in" style="overflow:hidden;padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border2)" class="card-title">
+        <div class="card-bar"></div><span class="card-label">Riwayat Produksi</span>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Tgl</th><th>Butir</th><th>Kg</th><th>HDP</th><th>HPP/kg</th><th></th></tr></thead>
+        <tbody>${[...E].reverse().map(e=>{const h=getHDP(e.butir),p=getHPP(e.kg),mt=hdpMeta(h);return`<tr>
+          <td class="td-date">${fmtDate(e.date)}</td><td>${e.butir.toLocaleString('id-ID')}</td><td>${e.kg.toFixed(2)}</td>
+          <td><span class="badge" style="background:${mt.bg};color:${mt.color}">${h.toFixed(1)}%</span></td>
+          <td class="${p&&p<=FLOOR_PRICE?'td-green':'td-red'}" style="white-space:nowrap">${p?fRp(p):'—'}</td>
+          <td><button class="del-btn" onclick="delLog('${e.date}')">×</button></td></tr>`;}).join('')}
+        </tbody>
+      </table></div>
+    </div>`:''}
 
     ${drivePanel()}
-
     <div class="export-row">
       <button class="exp-btn" onclick="exportJSON()">📥 Export JSON</button>
       <button class="exp-btn" onclick="importJSON()">📤 Import JSON</button>
       <button class="exp-btn" onclick="exportCSV()">📊 Export CSV</button>
-      <button class="exp-btn" onclick="loadFromDrive().then(render)" style="${!state.driveConnected?'opacity:.4;pointer-events:none':''}">☁️ Sync Drive</button>
+      <button class="exp-btn" onclick="loadFromDrive().then(render)" style="${!S.driveConnected?'opacity:.4;pointer-events:none':''}">☁️ Sync Drive</button>
     </div>
-
     <div class="info-grid">
       ${[['Biaya Harian','Rp 728.101'],['Floor Price','Rp 22.500/kg'],['Break-even HDP','~55%'],['Total Ayam','1.000 ekor']]
         .map(([k,v])=>`<div class="info-item"><div class="info-k">${k}</div><div class="info-v">${v}</div></div>`).join('')}
     </div>`;
 }
 
+function submitLog() {
+  const date=document.getElementById('log-date')?.value;
+  const butir=document.getElementById('log-butir')?.value;
+  const kg=document.getElementById('log-kg')?.value;
+  if(!date||!butir||!kg) return;
+  addLog(date,butir,kg);
+  const btn=document.getElementById('log-btn');
+  if(btn){btn.textContent='✓ Tersimpan';btn.className='btn btn-ok';}
+  setTimeout(()=>renderLogTab(),1500);
+}
+
+// ════════════════════════════════════════════════
+// TAB: KALKULATOR HARGA
+// ════════════════════════════════════════════════
 function renderHargaTab() {
-  const acuan = state._acuan || '';
-  const ref   = acuan ? +acuan : null;
-  const tooLow = ref && ref < FLOOR_PRICE;
-  const base  = tooLow ? FLOOR_PRICE : ref;
-  const grosir = base ? base + SPREAD_G : null;
-  const eceran = base ? base + SPREAD_E : null;
-  const hist  = state.priceHistory;
-
-  const broadcastTxt = grosir && eceran
-    ? `🥚 *Harga Telur Svarna Farm*\n📅 ${todayFmt()}\n\n🏷 *Grosir* (min. 5 tray / ±9 kg)\n    ${fRp(grosir)}/kg\n\n🛒 *Eceran*\n    ${fRp(eceran)}/kg\n\n📦 Telur segar langsung dari kandang\n📍 Tuwiri Wetan — antar ke rumah\n📱 Order via WA: [nomor]\n\n_Stok terbatas, pesan sekarang!_ 🐓` : '';
-
+  const H=S.priceHistory;
   document.getElementById('content').innerHTML = `
-    <div class="card" style="padding:18px">
+    <div class="card card-p">
       <div class="card-title"><div class="card-bar"></div><span class="card-label">Harga Acuan Peternakan</span></div>
-      <div class="field"><label>Tanggal</label><input type="date" id="harga-date" class="inp" value="${today()}"></div>
+      <div class="field"><label>Tanggal</label><input type="date" id="h-date" class="inp" value="${today()}"></div>
       <div class="field"><label>Harga acuan (Rp/kg)</label>
-        <input type="number" id="acuan-inp" class="inp inp-lg" placeholder="Contoh: 23000" value="${acuan}" oninput="onAcuanChange(this.value)">
+        <input type="number" id="h-acuan" class="inp inp-lg" placeholder="Contoh: 23000"
+          oninput="updateHargaOutput()" inputmode="numeric">
       </div>
-      ${ref ? `<div class="alert ${tooLow?'alert-warn':'alert-ok'}">${tooLow?'⚠️ Acuan di bawah floor Rp 22.500 — harga dihitung dari floor.':'✓ Acuan valid, margin semua tier aman.'}</div>` : ''}
-      <button class="btn ${state._priceSaved?'btn-ok':'btn-gold'}" onclick="submitPrice()">${state._priceSaved?'✓ Tersimpan ke Riwayat':'Simpan Harga Hari Ini'}</button>
+      <div id="h-alert"></div>
+      <button class="btn btn-gold" id="h-save-btn" onclick="submitPrice()">Simpan Harga</button>
     </div>
 
-    ${grosir && eceran ? `
-    <div class="price-grid fade-in">
-      <div class="price-card" style="background:${state.dark?'linear-gradient(135deg,#1a3022,#1f3a28)':'linear-gradient(135deg,#fff8ea,#fff3d6)'};border:1px solid var(--border)">
-        <div class="price-lbl">🏷 Grosir</div>
-        <div class="price-val" style="color:var(--gold)">${fRp(grosir)}</div>
-        <div class="price-unit">/kg</div>
-        <div class="price-tag">Min. 5 tray (±9 kg)</div>
-      </div>
-      <div class="price-card" style="background:${state.dark?'linear-gradient(135deg,#142a1e,#193322)':'linear-gradient(135deg,#f0faf4,#e4f5ea)'};border:1px solid rgba(76,175,125,.25)">
-        <div class="price-lbl">🛒 Eceran</div>
-        <div class="price-val" style="color:var(--green)">${fRp(eceran)}</div>
-        <div class="price-unit">/kg</div>
-        <div class="price-tag green">Di bawah 5 tray</div>
-      </div>
-    </div>
-    <div class="selisih-row">
-      <span style="font-size:12px;color:var(--text2)">Selisih Grosir ↔ Eceran</span>
-      <span style="font-size:13px;font-weight:700;color:var(--gold);font-family:'Playfair Display',serif">${fRp(eceran-grosir)}</span>
-    </div>` : ''}
+    <div id="h-prices"></div>
+    <div id="h-broadcast"></div>
 
-    ${broadcastTxt ? `
-    <div class="card fade-in" style="overflow:hidden;padding:0">
-      <div class="broadcast-header">
-        <div class="card-title" style="margin:0"><div class="card-bar green"></div><span class="card-label">Template Broadcast WA</span></div>
-        <button class="copy-btn" id="copy-btn" onclick="copyBroadcast()">${state._copied?'✓ Disalin':'Salin'}</button>
+    ${H.length>0?`<div class="card fade-in" style="overflow:hidden;padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border2)" class="card-title">
+        <div class="card-bar"></div><span class="card-label">Riwayat Harga Acuan</span>
       </div>
-      <div class="broadcast-body" id="broadcast-txt">${broadcastTxt}</div>
-    </div>` : ''}
-
-    ${hist.length > 0 ? `
-    <div class="card fade-in" style="overflow:hidden;padding:0">
-      <div style="padding:14px 18px;border-bottom:1px solid var(--border2)" class="card-title">
-        <div class="card-bar"></div><span class="card-label">Riwayat Harga</span>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Tanggal</th><th>Acuan</th><th>Grosir</th><th>Eceran</th></tr></thead>
-          <tbody>
-            ${[...hist].reverse().map(h=>{
-              const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;
-              return `<tr>
-                <td class="td-date">${h.date.slice(5)}</td>
-                <td>${fRp(h.acuan)}</td>
-                <td>${fRp(b+SPREAD_G)}</td>
-                <td class="td-green">${fRp(b+SPREAD_E)}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>` : ''}
-
-    ${!ref ? `<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Masukkan harga acuan</div><div class="empty-sub">Harga Grosir & Eceran otomatis terhitung</div></div>` : ''}
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Tanggal</th><th>Acuan</th><th>Grosir</th><th>Eceran</th><th></th></tr></thead>
+        <tbody>${[...H].reverse().map(h=>{const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;return`<tr>
+          <td class="td-date">${fmtDate(h.date)}</td>
+          <td>${fRp(h.acuan)}</td>
+          <td>${fRp(b+SPREAD_G)}</td>
+          <td class="td-green">${fRp(b+SPREAD_E)}</td>
+          <td><button class="del-btn" onclick="delPrice('${h.date}')">×</button></td></tr>`;}).join('')}
+        </tbody>
+      </table></div>
+    </div>`:''}
 
     ${drivePanel()}
-
     <div class="export-row">
       <button class="exp-btn" onclick="exportJSON()">📥 Export JSON</button>
       <button class="exp-btn" onclick="importJSON()">📤 Import JSON</button>
     </div>`;
 }
 
-function drivePanel() {
-  return `<div id="drive-panel">
-    <div id="drive-info">
-      <strong>${state.driveConnected ? '☁️ Google Drive Terhubung' : '☁️ Google Drive'}</strong>
-      <span id="drive-status-txt">${state.driveConnected ? (state.saving?'⏳ Menyimpan...':'Backup otomatis aktif') : 'Sambungkan untuk backup otomatis'}</span>
-    </div>
-    <button class="hbtn" onclick="connectDrive()" style="${state.driveConnected?'color:var(--green);border-color:var(--green)':''}">
-      ${state.driveConnected ? '✓ Terhubung' : 'Sambungkan'}
-    </button>
-  </div>`;
-}
+function updateHargaOutput() {
+  const inp = document.getElementById('h-acuan');
+  if (!inp) return;
+  const v = inp.value;
+  const ref = v ? +v : null;
+  const tooLow = ref && ref < FLOOR_PRICE;
+  const base = tooLow ? FLOOR_PRICE : ref;
+  const grosir = base ? base + SPREAD_G : null;
+  const eceran = base ? base + SPREAD_E : null;
 
-// ── FORM HANDLERS ─────────────────────────────────
-function submitLog() {
-  const date  = document.getElementById('log-date')?.value;
-  const butir = document.getElementById('log-butir')?.value;
-  const kg    = document.getElementById('log-kg')?.value;
-  if (!date || !butir || !kg) return;
-  addLogEntry(date, butir, kg);
-  const btn = document.getElementById('log-save-btn');
-  if (btn) { btn.textContent = '✓ Tersimpan'; btn.className = 'btn btn-ok'; }
-  setTimeout(() => renderLogTab(), 1500);
-}
+  // Update alert
+  const alertEl = document.getElementById('h-alert');
+  if (alertEl) {
+    alertEl.innerHTML = ref
+      ? `<div class="alert ${tooLow?'alert-warn':'alert-ok'}">${tooLow?'⚠️ Acuan di bawah floor Rp 22.500 — harga dihitung dari floor.':'✓ Acuan valid, margin semua tier aman.'}</div>`
+      : '';
+  }
 
-function onAcuanChange(v) {
-  state._acuan = v;
-  state._priceSaved = false;
-  state._copied = false;
-  renderHargaTab();
-  setTimeout(() => { const i = document.getElementById('acuan-inp'); if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);} }, 10);
+  // Update price cards
+  const priceEl = document.getElementById('h-prices');
+  if (priceEl) {
+    priceEl.innerHTML = grosir && eceran ? `
+      <div class="price-grid fade-in">
+        <div class="price-card" style="background:${S.dark?'linear-gradient(135deg,#1a3022,#1f3a28)':'linear-gradient(135deg,#fff8ea,#fff3d6)'};border:1px solid var(--border)">
+          <div class="price-lbl">🏷 Grosir</div>
+          <div class="price-val" style="color:var(--gold)">${fRp(grosir)}</div>
+          <div class="price-unit">/kg</div>
+          <div class="price-tag" style="background:var(--badge-gold);color:var(--gold)">Min. 5 tray (±9 kg)</div>
+        </div>
+        <div class="price-card" style="background:${S.dark?'linear-gradient(135deg,#142a1e,#193322)':'linear-gradient(135deg,#f0faf4,#e4f5ea)'};border:1px solid rgba(76,175,125,.25)">
+          <div class="price-lbl">🛒 Eceran</div>
+          <div class="price-val" style="color:var(--green)">${fRp(eceran)}</div>
+          <div class="price-unit">/kg</div>
+          <div class="price-tag" style="background:var(--badge-green);color:var(--green)">Di bawah 5 tray</div>
+        </div>
+      </div>
+      <div class="selisih-row">
+        <span style="font-size:12px;color:var(--text2)">Selisih Grosir ↔ Eceran</span>
+        <span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--gold)">${fRp(eceran-grosir)}</span>
+      </div>` : '';
+  }
+
+  // Update broadcast
+  const broadEl = document.getElementById('h-broadcast');
+  if (broadEl && grosir && eceran) {
+    const txt = `🥚 *Harga Telur Svarna Farm*\n📅 ${todayFmt()}\n\n🏷 *Grosir* (min. 5 tray / ±9 kg)\n    ${fRp(grosir)}/kg\n\n🛒 *Eceran*\n    ${fRp(eceran)}/kg\n\n📦 Telur segar langsung dari kandang\n📍 Tuwiri Wetan — antar ke rumah\n📱 Order via WA: [nomor]\n\n_Stok terbatas!_ 🐓`;
+    broadEl.innerHTML = `<div class="card fade-in" style="overflow:hidden;padding:0">
+      <div class="broadcast-header">
+        <div class="card-title" style="margin:0"><div class="card-bar green"></div><span class="card-label">Template Broadcast WA</span></div>
+        <button class="copy-btn" id="copy-btn" onclick="copyBroadcast()">Salin</button>
+      </div>
+      <div class="broadcast-body" id="broadcast-txt">${txt}</div>
+    </div>`;
+  } else if (broadEl && !grosir) {
+    broadEl.innerHTML = '';
+  }
 }
 
 function submitPrice() {
-  const v = state._acuan;
-  const d = document.getElementById('harga-date')?.value || today();
+  const v = document.getElementById('h-acuan')?.value;
+  const d = document.getElementById('h-date')?.value || today();
   if (!v) return;
-  addPriceEntry(v, d);
-  state._priceSaved = true;
-  renderHargaTab();
-  setTimeout(() => { state._priceSaved = false; }, 2000);
+  addPrice(v, d);
+  const btn = document.getElementById('h-save-btn');
+  if (btn) { btn.textContent='✓ Tersimpan'; btn.className='btn btn-ok'; }
+  setTimeout(()=>renderHargaTab(), 1500);
 }
 
 function copyBroadcast() {
   const txt = document.getElementById('broadcast-txt')?.innerText;
   if (!txt) return;
-  navigator.clipboard.writeText(txt).then(() => {
-    state._copied = true;
-    const btn = document.getElementById('copy-btn');
-    if (btn) { btn.textContent = '✓ Disalin'; btn.className = 'copy-btn ok'; }
-    setTimeout(() => { state._copied = false; }, 2000);
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    if(btn){btn.textContent='✓ Disalin';btn.className='copy-btn ok';}
+    setTimeout(()=>{if(btn){btn.textContent='Salin';btn.className='copy-btn';}},2000);
   });
 }
 
-// ── INIT ─────────────────────────────────────────
-window.addEventListener('load', () => {
-  LS.load();
+// ════════════════════════════════════════════════
+// TAB: CATATAN PENJUALAN
+// ════════════════════════════════════════════════
+function renderJualTab() {
+  const E = S.salesEntries;
+  const todayStr = today();
+  const todaySales = E.filter(e=>e.date===todayStr);
+  const todayKg  = todaySales.reduce((s,e)=>s+e.kg,0);
+  const todayRev = todaySales.reduce((s,e)=>s+e.total,0);
+  const todayMargin = todayRev - (todayKg * HPP_EST);
+  const totalKg  = E.reduce((s,e)=>s+e.kg,0);
+  const totalRev = E.reduce((s,e)=>s+e.total,0);
+
+  // Get current price for selected type and date
+  const selDate = S.j_date || todayStr;
+  const autoPrice = priceForDate(selDate, S.j_type);
+  const kg = S.j_kg ? +S.j_kg : 0;
+  const unitPrice = autoPrice || 0;
+  const total = kg * unitPrice;
+
+  document.getElementById('content').innerHTML = `
+    ${E.length>0?`<div class="summary-bar fade-in">
+      <div class="sum-card">
+        <div class="sum-lbl">Hari Ini</div>
+        <div class="sum-val" style="font-size:16px">${fRp(todayRev)}</div>
+        <div class="sum-sub">${todayKg.toFixed(1)} kg · ${todaySales.length} transaksi</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-lbl">Total KG Terjual</div>
+        <div class="sum-val">${totalKg.toFixed(1)}</div>
+        <div class="sum-sub">kg</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-lbl">Total Revenue</div>
+        <div class="sum-val" style="font-size:14px">${fRp(totalRev)}</div>
+        <div class="sum-sub">semua waktu</div>
+      </div>
+    </div>`:''}
+
+    <div class="card card-p">
+      <div class="card-title"><div class="card-bar amber"></div><span class="card-label">Catat Penjualan</span></div>
+
+      <div class="field"><label>Tanggal</label>
+        <input type="date" id="j-date" class="inp" value="${selDate}" onchange="onJualDateChange(this.value)">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:6px">Jenis Harga</label>
+        <div class="type-toggle">
+          <button class="type-btn ${S.j_type==='grosir'?'active-g':''}" onclick="setJualType('grosir')">🏷 Grosir</button>
+          <button class="type-btn ${S.j_type==='eceran'?'active-e':''}" onclick="setJualType('eceran')">🛒 Eceran</button>
+        </div>
+      </div>
+
+      <div class="pos-price-display">
+        <div class="pos-price-lbl">Harga ${S.j_type === 'grosir' ? 'Grosir' : 'Eceran'} — ${fmtDate(selDate)}</div>
+        ${autoPrice
+          ? `<div class="pos-price-val">${fRp(autoPrice)}<span style="font-size:14px;font-weight:400">/kg</span></div>`
+          : `<div style="font-size:13px;color:var(--red)">⚠️ Belum ada harga untuk tanggal ini.<br><span style="font-size:11px">Set harga dulu di tab Kalkulator.</span></div>`}
+      </div>
+
+      <div class="field-row">
+        <div class="field" style="margin:0"><label>Kg</label>
+          <input type="number" id="j-kg" class="inp" placeholder="0.00" step="0.1" value="${S.j_kg}" oninput="onJualKgChange(this.value)">
+        </div>
+        <div class="field" style="margin:0"><label>Pembeli (opsional)</label>
+          <input type="text" id="j-buyer" class="inp" placeholder="Nama / warung" value="${S.j_buyer}" oninput="S.j_buyer=this.value">
+        </div>
+      </div>
+
+      ${kg>0&&autoPrice?`<div class="pos-total">
+        <span style="font-size:12px;color:var(--text2)">Total (${kg} kg × ${fRp(unitPrice)})</span>
+        <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)">${fRp(total)}</span>
+      </div>`:''}
+
+      <div class="field"><label>Catatan (opsional)</label>
+        <input type="text" id="j-note" class="inp" placeholder="Misal: bayar besok, antar sore" value="${S.j_note}" oninput="S.j_note=this.value">
+      </div>
+
+      <button class="btn ${S.j_saved?'btn-ok':'btn-gold'}" id="j-btn" onclick="submitJual()" ${!autoPrice?'style="opacity:.5;pointer-events:none"':''}>
+        ${S.j_saved?'✓ Tercatat':'Catat Penjualan'}
+      </button>
+    </div>
+
+    ${E.length>0?`<div class="card fade-in" style="overflow:hidden;padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border2)" class="card-title">
+        <div class="card-bar amber"></div><span class="card-label">Riwayat Penjualan</span>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Tgl</th><th>Jenis</th><th>Kg</th><th>Harga/kg</th><th>Total</th><th></th></tr></thead>
+        <tbody>${[...E].reverse().map(e=>`<tr>
+          <td class="td-date">${fmtDate(e.date)}</td>
+          <td><span class="${e.type==='grosir'?'sale-type-g':'sale-type-e'}">${e.type==='grosir'?'Grosir':'Eceran'}</span>${e.buyer?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${e.buyer}</div>`:''}</td>
+          <td>${e.kg.toFixed(1)}</td>
+          <td style="white-space:nowrap">${fRp(e.pricePerKg)}</td>
+          <td class="td-green" style="white-space:nowrap">${fRp(e.total)}</td>
+          <td><button class="del-btn" onclick="delSale('${e.id}')">×</button></td></tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`:''}
+
+    ${E.length===0?`<div class="empty"><div class="empty-icon">🧾</div><div class="empty-title">Belum ada penjualan tercatat</div><div class="empty-sub">Input transaksi pertama di atas</div></div>`:''}
+
+    ${drivePanel()}`;
+}
+
+function setJualType(t) { S.j_type=t; renderJualTab(); }
+function onJualDateChange(v) { S.j_date=v; renderJualTab(); }
+function onJualKgChange(v) {
+  S.j_kg=v;
+  // Only update the total display, not the whole tab
+  const kg=+v, selDate=S.j_date||today();
+  const autoPrice=priceForDate(selDate,S.j_type)||0;
+  const total=kg*autoPrice;
+  const totalEl=document.querySelector('.pos-total');
+  if(totalEl&&kg>0&&autoPrice) {
+    totalEl.querySelector('span:first-child').textContent=`Total (${kg} kg × ${fRp(autoPrice)})`;
+    totalEl.querySelector('span:last-child').textContent=fRp(total);
+  }
+}
+function submitJual() {
+  const date  = document.getElementById('j-date')?.value || today();
+  const kg    = document.getElementById('j-kg')?.value;
+  const buyer = document.getElementById('j-buyer')?.value || '';
+  const note  = document.getElementById('j-note')?.value || '';
+  const price = priceForDate(date, S.j_type);
+  if (!kg||!price) return;
+  addSale(date, S.j_type, buyer, kg, price, note);
+  S.j_kg=''; S.j_buyer=''; S.j_note=''; S.j_saved=true;
+  renderJualTab();
+  setTimeout(()=>{ S.j_saved=false; }, 1500);
+}
+
+// ── MAIN RENDER ───────────────────────────────────
+function render() {
   applyTheme();
-  render();
-  setTimeout(initDrive, 1000);
+  if (S.tab==='log')   renderLogTab();
+  if (S.tab==='harga') renderHargaTab();
+  if (S.tab==='jual')  renderJualTab();
+}
+
+// ── INIT ──────────────────────────────────────────
+window.addEventListener('load', ()=>{
+  LS.load(); applyTheme(); render();
+  setTimeout(initDrive, 800);
 });
 </script>
 </body>
