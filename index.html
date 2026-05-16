@@ -9,6 +9,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden}
 :root{
   --bg:#0b1a10;--surface:#132218;--surface2:#1a2e20;--surface3:#213829;
   --border:rgba(212,168,50,.18);--border2:rgba(212,168,50,.08);
@@ -51,8 +52,8 @@ input[type=number]{-moz-appearance:textfield}
 /* SIDEBAR */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:89;opacity:0;pointer-events:none;transition:opacity .25s}
 #overlay.open{opacity:1;pointer-events:all}
-#sidebar{position:fixed;left:0;top:0;height:100dvh;background:var(--surface);border-right:1px solid var(--border);z-index:90;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);width:max-content;min-width:195px;max-width:68vw;overflow-y:auto;box-shadow:var(--shadow);padding-bottom:24px}
-#sidebar.open{transform:translateX(0)}
+#sidebar{position:fixed;left:0;top:0;height:100dvh;background:var(--surface);border-right:1px solid var(--border);z-index:90;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1),visibility .28s;width:max-content;min-width:195px;max-width:68vw;overflow-y:auto;box-shadow:none;padding-bottom:24px;visibility:hidden}
+#sidebar.open{transform:translateX(0);box-shadow:var(--shadow);visibility:visible}
 #sb-header{padding:18px 16px 12px;border-bottom:1px solid var(--border2)}
 #sb-logo{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--gold)}
 #sb-sub{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
@@ -412,20 +413,35 @@ async function saveToDrive(){
   }catch(e){console.error(e);}
   S.saving=false; updateSbDrive();
 }
+function mergeBy(local, drive, keyFn) {
+  const map = new Map();
+  drive.forEach(e => map.set(keyFn(e), e));
+  local.forEach(e => map.set(keyFn(e), e)); // local wins on conflict
+  return [...map.values()].sort((a,b)=>{
+    const ka=keyFn(a), kb=keyFn(b);
+    return typeof ka==='string'?ka.localeCompare(kb):0;
+  });
+}
 async function loadFromDrive(){
   if(!S.driveConnected||!S.accessToken)return;
-  const fid=await findFile(); if(!fid)return;
+  const fid=await findFile(); if(!fid){
+    // No Drive file yet — push local data up
+    await saveToDrive(); return;
+  }
   S.driveFileId=fid;
   const r=await dFetch(`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`);
   if(!r)return;
   try{
     const d=await r.json();
-    if(d.logEntries)      S.logEntries=d.logEntries;
-    if(d.priceHistory)    S.priceHistory=d.priceHistory;
-    if(d.salesEntries)    S.salesEntries=d.salesEntries;
-    if(d.purchaseEntries) S.purchaseEntries=d.purchaseEntries;
+    // MERGE — local data wins on conflict, all entries from both sources kept
+    if(d.logEntries)      S.logEntries      = mergeBy(S.logEntries,      d.logEntries,      e=>e.date);
+    if(d.priceHistory)    S.priceHistory    = mergeBy(S.priceHistory,    d.priceHistory,    e=>e.date);
+    if(d.salesEntries)    S.salesEntries    = mergeBy(S.salesEntries,    d.salesEntries,    e=>e.id);
+    if(d.purchaseEntries) S.purchaseEntries = mergeBy(S.purchaseEntries, d.purchaseEntries, e=>e.id);
     LS.save();
-  }catch(e){}
+    // Push merged result back to Drive
+    setTimeout(()=>saveToDrive(), 1000);
+  }catch(e){console.error('Drive load:',e);}
 }
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveToDrive(),2500);}
 function updateSbDrive(){
