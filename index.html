@@ -9,7 +9,8 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{overflow-x:hidden}
+html{overflow-x:clip}
+body{overflow-x:hidden}
 :root{
   --bg:#0b1a10;--surface:#132218;--surface2:#1a2e20;--surface3:#213829;
   --border:rgba(212,168,50,.18);--border2:rgba(212,168,50,.08);
@@ -52,7 +53,7 @@ input[type=number]{-moz-appearance:textfield}
 /* SIDEBAR */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:89;opacity:0;pointer-events:none;transition:opacity .25s}
 #overlay.open{opacity:1;pointer-events:all}
-#sidebar{position:fixed;left:0;top:0;height:100dvh;background:var(--surface);border-right:1px solid var(--border);z-index:90;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1),visibility .28s;width:max-content;min-width:195px;max-width:68vw;overflow-y:auto;box-shadow:none;padding-bottom:24px;visibility:hidden}
+#sidebar{position:fixed;left:0;top:0;height:100dvh;background:var(--surface);border-right:1px solid var(--border);z-index:90;transform:translateX(calc(-100% - 40px));transition:transform .28s cubic-bezier(.4,0,.2,1),visibility .28s;width:max-content;min-width:195px;max-width:68vw;overflow-y:auto;box-shadow:none;padding-bottom:24px;visibility:hidden}
 #sidebar.open{transform:translateX(0);box-shadow:var(--shadow);visibility:visible}
 #sb-header{padding:18px 16px 12px;border-bottom:1px solid var(--border2)}
 #sb-logo{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--gold)}
