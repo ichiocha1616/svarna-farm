@@ -304,7 +304,13 @@ const S = {
   // live form state (no re-render on type)
   h_acuan:'', j_type:'eceran', j_discType:'pct',
   j_date:'', j_kg:'', j_buyer:'', j_phone:'', j_disc:'', j_note:'',
-  b_cat:'pakan', b_date:'', b_item:'', b_qty:'', b_unit:'', b_price:'', b_note:'', b_img:null,
+  b_cat:'', b_date:'', b_item:'', b_qty:'', b_unit:'', b_price:'', b_note:'', b_img:null,
+  b_toko:'', b_tokoContact:'',
+  j_item:'Telur', j_manualPrice:'',
+  customItems:['Telur','Kohe'],
+  customCats:[{id:'pakan',icon:'🌾',label:'Pakan'},{id:'obat',icon:'💊',label:'Obat/Vit'},{id:'alat',icon:'🔧',label:'Peralatan'},{id:'lain',icon:'📦',label:'Lain-lain'}],
+  showManageItems:false, showManageCats:false,
+  newItemName:'', newCatIcon:'📦', newCatLabel:'',
 };
 
 let saveTimer=null, inactTimer=null, tokenClient=null;
@@ -354,6 +360,8 @@ const LS={
       localStorage.setItem('sf-price', JSON.stringify(S.priceHistory));
       localStorage.setItem('sf-sales', JSON.stringify(S.salesEntries));
       localStorage.setItem('sf-beli',  JSON.stringify(S.purchaseEntries));
+      localStorage.setItem('sf-items', JSON.stringify(S.customItems));
+      localStorage.setItem('sf-cats',  JSON.stringify(S.customCats));
       localStorage.setItem('sf-dark',  S.dark?'1':'0');
     }catch(e){console.warn('LS save:',e)}
   },
@@ -362,7 +370,10 @@ const LS={
     try{S.priceHistory    =JSON.parse(localStorage.getItem('sf-price')||'[]')}catch(_){}
     try{S.salesEntries    =JSON.parse(localStorage.getItem('sf-sales')||'[]')}catch(_){}
     try{S.purchaseEntries =JSON.parse(localStorage.getItem('sf-beli') ||'[]')}catch(_){}
+    try{const ci=JSON.parse(localStorage.getItem('sf-items'));if(ci?.length)S.customItems=ci;}catch(_){}
+    try{const cc=JSON.parse(localStorage.getItem('sf-cats'));if(cc?.length)S.customCats=cc;}catch(_){}
     S.dark = (localStorage.getItem('sf-dark')||'1')==='1';
+    if(!S.b_cat&&S.customCats.length) S.b_cat=S.customCats[0].id;
   }
 };
 
@@ -412,6 +423,28 @@ async function saveToDrive(){
     S.lastSaved=new Date();
   }catch(e){console.error(e);}
   S.saving=false; updateSbDrive();
+}
+function addItem(){
+  const n=(S.newItemName||'').trim(); if(!n||S.customItems.includes(n))return;
+  S.customItems=[...S.customItems,n]; S.newItemName=''; LS.save(); renderJual();
+}
+function delItem(name){
+  if(name==='Telur')return; // protect default
+  S.customItems=S.customItems.filter(i=>i!==name);
+  if(S.j_item===name)S.j_item='Telur';
+  LS.save(); renderJual();
+}
+function addCat(){
+  const l=(S.newCatLabel||'').trim(); if(!l)return;
+  const id='cat_'+Date.now();
+  S.customCats=[...S.customCats,{id,icon:S.newCatIcon||'📦',label:l}];
+  S.newCatLabel=''; LS.save(); renderBeli();
+}
+function delCat(id){
+  if(['pakan','obat','alat','lain'].includes(id))return; // protect defaults
+  S.customCats=S.customCats.filter(c=>c.id!==id);
+  if(S.b_cat===id)S.b_cat=S.customCats[0]?.id||'pakan';
+  LS.save(); renderBeli();
 }
 function mergeBy(local, drive, keyFn) {
   const map = new Map();
@@ -887,18 +920,23 @@ function renderAnalitik(){
 // ═══════════════════════════════════════════════
 // RENDER: PENJUALAN
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// RENDER: PENJUALAN
+// ═══════════════════════════════════════════════
 function renderJual(){
-  const sec=S.section||'catat';
   const E=S.salesEntries, td=today();
   const todaySales=E.filter(e=>e.date===td);
   const todayKg=todaySales.reduce((s,e)=>s+e.kg,0);
   const todayRev=todaySales.reduce((s,e)=>s+e.total,0);
   const totalKg=E.reduce((s,e)=>s+e.kg,0), totalRev=E.reduce((s,e)=>s+e.total,0);
   const jd=S.j_date||td;
-  const autoPrice=priceForDate(jd,S.j_type);
+  const isTelur=S.j_item==='Telur';
+  const autoPrice=isTelur?priceForDate(jd,S.j_type):null;
+  const manualPrice=S.j_manualPrice?+S.j_manualPrice:null;
+  const unitPrice=isTelur?autoPrice:manualPrice;
   const kg=S.j_kg?+S.j_kg:0;
   const disc=S.j_disc?+S.j_disc:0;
-  const effPrice=autoPrice?applyDisc(autoPrice,S.j_discType,disc):0;
+  const effPrice=unitPrice?applyDisc(unitPrice,S.j_discType,disc):0;
   const total=kg*effPrice;
 
   document.getElementById('content').innerHTML=`
@@ -910,7 +948,15 @@ function renderJual(){
 
     <div class="card cp fi">
       <div class="ct"><div class="cb a"></div><span class="cl">Catat Penjualan</span></div>
-      <div class="field"><label>Tanggal</label><input type="date" id="jd" class="inp" value="${jd}" onchange="S.j_date=this.value;renderJual()"></div>
+      <div class="field"><label>Tanggal</label>
+        <input type="date" id="jd" class="inp" value="${jd}" onchange="S.j_date=this.value;renderJual()">
+      </div>
+      <div class="field"><label>Produk</label>
+        <select id="j-item" class="inp" onchange="S.j_item=this.value;S.j_manualPrice='';renderJual()">
+          ${S.customItems.map(i=>`<option value="${i}" ${S.j_item===i?'selected':''}>${i}</option>`).join('')}
+        </select>
+      </div>
+      ${isTelur?`
       <div style="margin-bottom:12px"><div class="flbl" style="margin-bottom:6px">Jenis Harga</div>
         <div class="type-tog">
           <button class="t-btn ${S.j_type==='grosir'?'tg':''}" onclick="S.j_type='grosir';renderJual()">🏷 Grosir</button>
@@ -922,54 +968,98 @@ function renderJual(){
         ${autoPrice
           ?`<div class="pos-pv">${fRp(autoPrice)}<span style="font-size:14px;font-weight:400">/kg</span></div>`
           :`<div style="font-size:12px;color:var(--red)">⚠️ Belum ada harga untuk tanggal ini.<br><span style="font-size:11px;color:var(--text3)">Set di Kalkulator Harga dulu.</span></div>`}
-      </div>
+      </div>`:
+      `<div class="field"><label>Harga per Satuan (Rp)</label>
+        <input type="number" id="j-mprice" class="inp inp-lg" placeholder="0" value="${S.j_manualPrice}"
+          onchange="S.j_manualPrice=this.value;updJualTotal()" inputmode="numeric">
+      </div>`}
       <div class="frow">
-        <div class="field" style="margin:0"><label>Kg</label>
-          <input type="number" id="jkg" class="inp" placeholder="0.0" step="0.1" value="${S.j_kg}" onchange="S.j_kg=this.value;updJualTotal()"></div>
+        <div class="field" style="margin:0"><label>Kg / Satuan</label>
+          <input type="number" id="jkg" class="inp" placeholder="0.0" step="0.1" value="${S.j_kg}"
+            onchange="S.j_kg=this.value;updJualTotal()">
+        </div>
         <div class="field" style="margin:0"><label>Kontak Pembeli</label>
-          <input type="text" id="jph" class="inp inp-sm" placeholder="Nama / No. WA" value="${S.j_phone}" oninput="S.j_phone=this.value"></div>
+          <input type="text" id="jph" class="inp inp-sm" placeholder="Nama / No. WA" value="${S.j_phone}"
+            oninput="S.j_phone=this.value">
+        </div>
       </div>
       <div class="disc-row">
         <div class="field" style="margin:0"><label>Diskon <span style="color:var(--text3);font-weight:400">opsional</span></label>
-          <input type="number" id="jdv" class="inp inp-sm" placeholder="0" value="${S.j_disc}" onchange="S.j_disc=this.value;updJualTotal()"></div>
+          <input type="number" id="jdv" class="inp inp-sm" placeholder="0" value="${S.j_disc}"
+            onchange="S.j_disc=this.value;updJualTotal()">
+        </div>
         <div>
           <div class="flbl" style="margin-bottom:6px">Satuan</div>
           <div class="disc-tog">
-            <button onclick="S.j_discType='pct';this.classList.add('act');this.nextElementSibling.classList.remove('act');updJualTotal()" class="${S.j_discType==='pct'?'act':''}">%</button>
-            <button onclick="S.j_discType='rp';this.classList.add('act');this.previousElementSibling.classList.remove('act');updJualTotal()" class="${S.j_discType==='rp'?'act':''}">Rp</button>
+            <button onclick="S.j_discType='pct';document.querySelectorAll('.disc-tog button').forEach((b,i)=>b.classList.toggle('act',i===0));updJualTotal()" class="${S.j_discType==='pct'?'act':''}">%</button>
+            <button onclick="S.j_discType='rp';document.querySelectorAll('.disc-tog button').forEach((b,i)=>b.classList.toggle('act',i===1));updJualTotal()" class="${S.j_discType==='rp'?'act':''}">Rp</button>
           </div>
         </div>
       </div>
-      <div id="j-tot">${kg>0&&autoPrice?`<div class="pos-tot">
-        <span style="font-size:12px;color:var(--text2)">${kg}kg × ${fRp(effPrice)}${disc?` (diskon ${S.j_discType==='pct'?disc+'%':fRp(disc)})`:''}</span>
+      <div id="j-tot">${kg>0&&unitPrice?`<div class="pos-tot">
+        <span style="font-size:12px;color:var(--text2)">${kg} × ${fRp(effPrice)}${disc?` (diskon ${S.j_discType==='pct'?disc+'%':fRp(disc)})`:''}</span>
         <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)">${fRp(total)}</span>
       </div>`:''}</div>
-      <div class="field"><label>Pembeli</label><input type="text" id="jb" class="inp inp-sm" placeholder="Nama warung / orang" value="${S.j_buyer}" oninput="S.j_buyer=this.value"></div>
-      <div class="field"><label>Catatan</label><input type="text" id="jn" class="inp inp-sm" placeholder="Misal: bayar besok, antar sore" value="${S.j_note}" oninput="S.j_note=this.value"></div>
-      <button class="btn btn-g" id="j-btn" onclick="submitJual()" ${!autoPrice?'style="opacity:.5;pointer-events:none"':''}>Catat Penjualan</button>
+      <div class="field"><label>Pembeli</label>
+        <input type="text" id="jb" class="inp inp-sm" placeholder="Nama / warung" value="${S.j_buyer}" oninput="S.j_buyer=this.value">
+      </div>
+      <div class="field"><label>Catatan</label>
+        <input type="text" id="jn" class="inp inp-sm" placeholder="Misal: bayar besok, antar sore" value="${S.j_note}" oninput="S.j_note=this.value">
+      </div>
+      <button class="btn btn-g" id="j-btn" onclick="submitJual()"
+        ${!unitPrice?'style="opacity:.5;pointer-events:none"':''}>Catat Penjualan</button>
+    </div>
+
+    <!-- KELOLA PRODUK -->
+    <div class="card cp fi">
+      <div class="ct" onclick="S.showManageItems=!S.showManageItems;renderJual()" style="cursor:pointer;margin-bottom:0">
+        <div class="cb g"></div><span class="cl">Kelola Produk</span>
+        <span style="margin-left:auto;color:var(--text3);font-size:12px">${S.showManageItems?'▲':'▼'}</span>
+      </div>
+      ${S.showManageItems?`
+      <div style="margin-top:14px">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input type="text" class="inp inp-sm" style="flex:1" placeholder="Nama produk baru (misal: Kohe)"
+            value="${S.newItemName}" oninput="S.newItemName=this.value"
+            onkeydown="if(event.key==='Enter')addItem()">
+          <button class="btn btn-g btn-sm" onclick="addItem()">+ Tambah</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${S.customItems.map(i=>`
+            <div style="display:flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px">
+              <span style="font-size:12px;font-weight:500;color:var(--text1)">${i}</span>
+              ${i!=='Telur'?`<button onclick="delItem('${i}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">×</button>`:'<span style="font-size:10px;color:var(--text3);margin-left:2px">default</span>'}
+            </div>`).join('')}
+        </div>
+      </div>`:''}
     </div>
 
     ${E.length>0?`<div class="card fi" style="overflow:hidden;padding:0">
       <div style="padding:13px 16px;border-bottom:1px solid var(--border2)" class="ct"><div class="cb a"></div><span class="cl">Riwayat Penjualan</span></div>
       <div class="tbl-w"><table>
-        <thead><tr><th>Tgl</th><th>Jenis</th><th>Kg</th><th>Harga</th><th>Diskon</th><th>Total</th><th></th></tr></thead>
+        <thead><tr><th>Tgl</th><th>Produk</th><th>Qty</th><th>Harga</th><th>Diskon</th><th>Total</th><th></th></tr></thead>
         <tbody>${[...E].reverse().map(e=>{
+          const isTelurRow=!e.item||e.item==='Telur';
           const typeClr=e.type==='grosir'?'color:var(--gold);background:var(--bg-gold)':'color:var(--green);background:var(--bg-green)';
           const discTxt=e.discVal>0?(e.discType==='pct'?e.discVal+'%':fRp(e.discVal)):'—';
           return`<tr>
             <td class="td-d">${fmtD(e.date)}</td>
-            <td><span class="bdg" style="${typeClr}">${e.type}</span>${e.buyer?`<div style="font-size:10px;color:var(--text3)">${e.buyer}</div>`:''}</td>
-            <td>${e.kg.toFixed(1)}</td><td>${fRp(e.pricePerKg)}</td>
+            <td>
+              <div style="font-weight:600;font-size:12px">${e.item||'Telur'}</div>
+              ${isTelurRow?`<span class="bdg" style="${typeClr}">${e.type}</span>`:''}
+              ${e.buyer?`<div style="font-size:10px;color:var(--text3)">${e.buyer}</div>`:''}
+            </td>
+            <td>${e.kg.toFixed(1)}</td>
+            <td style="white-space:nowrap">${fRp(e.pricePerKg)}</td>
             <td style="color:var(--amber)">${discTxt}</td>
-            <td class="td-g">${fRp(e.total)}</td>
+            <td class="td-g" style="white-space:nowrap">${fRp(e.total)}</td>
             <td><button class="del" onclick="delSale('${e.id}')">×</button></td></tr>`;}).join('')}
         </tbody>
       </table></div>
     </div>
     <div class="row-sb"><span style="font-size:12px;color:var(--text2)">Total Revenue</span>
       <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--gold)">${fRp(totalRev)}</span></div>`:''}
-
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div><div>Input transaksi pertama di atas</div></div>`:''}`;
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div></div>`:''}`;
 }
 function updJualTotal(){
   const kg=+(document.getElementById('jkg')?.value||0);
@@ -977,12 +1067,13 @@ function updJualTotal(){
   const disc=+(document.getElementById('jdv')?.value||0);
   S.j_disc=disc||'';
   const jd=S.j_date||today();
-  const autoPrice=priceForDate(jd,S.j_type)||0;
-  const effPrice=applyDisc(autoPrice,S.j_discType,disc);
+  const isTelur=S.j_item==='Telur';
+  const unitPrice=(isTelur?priceForDate(jd,S.j_type):S.j_manualPrice?+S.j_manualPrice:0)||0;
+  const effPrice=applyDisc(unitPrice,S.j_discType,disc);
   const total=kg*effPrice;
   const el=document.getElementById('j-tot');
-  if(el) el.innerHTML=kg>0&&autoPrice?`<div class="pos-tot">
-    <span style="font-size:12px;color:var(--text2)">${kg}kg × ${fRp(effPrice)}${disc?` (diskon ${S.j_discType==='pct'?disc+'%':fRp(disc)})`:''}</span>
+  if(el) el.innerHTML=kg>0&&unitPrice?`<div class="pos-tot">
+    <span style="font-size:12px;color:var(--text2)">${kg} × ${fRp(effPrice)}${disc?` (diskon ${S.j_discType==='pct'?disc+'%':fRp(disc)})`:''}</span>
     <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)">${fRp(total)}</span>
   </div>`:'';
 }
@@ -990,11 +1081,13 @@ function submitJual(){
   const jd=S.j_date||today(), kg=document.getElementById('jkg')?.value;
   const buyer=document.getElementById('jb')?.value||'', phone=document.getElementById('jph')?.value||'';
   const note=document.getElementById('jn')?.value||'', discVal=+(document.getElementById('jdv')?.value||0);
-  const autoPrice=priceForDate(jd,S.j_type); if(!kg||!autoPrice)return;
-  const effPrice=applyDisc(autoPrice,S.j_discType,discVal);
+  const isTelur=S.j_item==='Telur';
+  const unitPrice=isTelur?priceForDate(jd,S.j_type):(S.j_manualPrice?+S.j_manualPrice:null);
+  if(!kg||!unitPrice)return;
+  const effPrice=applyDisc(unitPrice,S.j_discType,discVal);
   const total=+kg*effPrice;
-  addSale({date:jd,type:S.j_type,buyer,buyerPhone:phone,kg:+kg,pricePerKg:autoPrice,discType:S.j_discType,discVal,total,note});
-  S.j_kg='';S.j_buyer='';S.j_phone='';S.j_disc='';S.j_note='';
+  addSale({date:jd,item:S.j_item,type:isTelur?S.j_type:'manual',buyer,buyerPhone:phone,kg:+kg,pricePerKg:unitPrice,discType:S.j_discType,discVal,total,note});
+  S.j_kg='';S.j_buyer='';S.j_phone='';S.j_disc='';S.j_note='';S.j_manualPrice='';
   const btn=document.getElementById('j-btn');
   if(btn){btn.textContent='✓ Tercatat';btn.className='btn btn-ok';}
   setTimeout(()=>renderJual(),1500);
@@ -1003,11 +1096,11 @@ function submitJual(){
 // ═══════════════════════════════════════════════
 // RENDER: PEMBELIAN
 // ═══════════════════════════════════════════════
-const CATS=[['pakan','🌾','Pakan'],['obat','💊','Obat/Vit'],['alat','🔧','Peralatan'],['lain','📦','Lain-lain']];
 function renderBeli(){
   const E=S.purchaseEntries, td=today();
   const totalBeli=E.reduce((s,e)=>s+e.total,0);
   const bd=S.b_date||td, qty=S.b_qty?+S.b_qty:0, price=S.b_price?+S.b_price:0, total=qty*price;
+  const currentCat=S.b_cat||S.customCats[0]?.id||'pakan';
   document.getElementById('content').innerHTML=`
     ${E.length>0?`<div class="sum-b fi">
       <div class="sc" style="grid-column:span 2"><div class="sl">Total Pembelian</div><div class="sv" style="font-size:15px">${fRp(totalBeli)}</div><div class="ss">${E.length} transaksi</div></div>
@@ -1017,14 +1110,32 @@ function renderBeli(){
     </div>`:''}
     <div class="card cp fi">
       <div class="ct"><div class="cb r"></div><span class="cl">Catat Pembelian</span></div>
-      <div class="field"><label>Tanggal</label><input type="date" id="bd" class="inp" value="${bd}" onchange="S.b_date=this.value"></div>
-      <div style="margin-bottom:12px"><div class="flbl" style="margin-bottom:6px">Kategori</div>
-        <div class="cat-g">${CATS.map(([k,ic,lb])=>`<button class="cat-b ${S.b_cat===k?'act':''}" onclick="S.b_cat='${k}';renderBeli()"><span>${ic}</span>${lb}</button>`).join('')}</div>
+      <div class="field"><label>Tanggal</label>
+        <input type="date" id="bd" class="inp" value="${bd}" onchange="S.b_date=this.value">
       </div>
-      <div class="field"><label>Nama Item</label><input type="text" id="bi" class="inp" placeholder="Misal: PAR G, Vitastress..." value="${S.b_item}" oninput="S.b_item=this.value"></div>
+      <div style="margin-bottom:12px"><div class="flbl" style="margin-bottom:6px">Kategori</div>
+        <div class="cat-g" style="grid-template-columns:repeat(${Math.min(S.customCats.length+1,4)},1fr)">
+          ${S.customCats.map(c=>`<button class="cat-b ${currentCat===c.id?'act':''}" onclick="S.b_cat='${c.id}';renderBeli()"><span>${c.icon}</span>${c.label}</button>`).join('')}
+        </div>
+      </div>
       <div class="frow">
-        <div class="field" style="margin:0"><label>Jumlah</label><input type="number" id="bq" class="inp inp-sm" placeholder="0" value="${S.b_qty}" onchange="S.b_qty=this.value;updBeliTotal()"></div>
-        <div class="field" style="margin:0"><label>Satuan</label><input type="text" id="bu" class="inp inp-sm" placeholder="karung, botol, bks..." value="${S.b_unit}" oninput="S.b_unit=this.value"></div>
+        <div class="field" style="margin:0"><label>Nama Toko</label>
+          <input type="text" id="btoko" class="inp inp-sm" placeholder="Nama toko / supplier" value="${S.b_toko}" oninput="S.b_toko=this.value">
+        </div>
+        <div class="field" style="margin:0"><label>Kontak Toko <span style="color:var(--text3);font-weight:400">opsional</span></label>
+          <input type="text" id="bcontact" class="inp inp-sm" placeholder="No. WA / telp" value="${S.b_tokoContact}" oninput="S.b_tokoContact=this.value">
+        </div>
+      </div>
+      <div class="field"><label>Nama Item</label>
+        <input type="text" id="bi" class="inp" placeholder="Misal: PAR G, Vitastress..." value="${S.b_item}" oninput="S.b_item=this.value">
+      </div>
+      <div class="frow">
+        <div class="field" style="margin:0"><label>Jumlah</label>
+          <input type="number" id="bq" class="inp inp-sm" placeholder="0" value="${S.b_qty}" onchange="S.b_qty=this.value;updBeliTotal()">
+        </div>
+        <div class="field" style="margin:0"><label>Satuan</label>
+          <input type="text" id="bu" class="inp inp-sm" placeholder="karung, botol, bks..." value="${S.b_unit}" oninput="S.b_unit=this.value">
+        </div>
       </div>
       <div class="field"><label>Harga per Satuan (Rp)</label>
         <input type="number" id="bp" class="inp inp-sm" placeholder="0" value="${S.b_price}" onchange="S.b_price=this.value;updBeliTotal()">
@@ -1033,7 +1144,9 @@ function renderBeli(){
         <span style="font-size:12px;color:var(--text2)">${qty} ${S.b_unit||'satuan'} × ${fRp(price)}</span>
         <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--red)">${fRp(total)}</span>
       </div>`:''}</div>
-      <div class="field"><label>Catatan</label><input type="text" id="bn" class="inp inp-sm" placeholder="Nomor nota, toko, dll" value="${S.b_note}" oninput="S.b_note=this.value"></div>
+      <div class="field"><label>Catatan</label>
+        <input type="text" id="bn" class="inp inp-sm" placeholder="Nomor nota, keterangan lain..." value="${S.b_note}" oninput="S.b_note=this.value">
+      </div>
       <div class="field">
         <label>Upload Nota <span style="color:var(--text3);font-weight:400">opsional</span></label>
         ${S.b_img?`<div class="receipt-preview"><img src="${S.b_img}" alt="nota"></div>`:''}
@@ -1042,16 +1155,48 @@ function renderBeli(){
       <button class="btn btn-g" onclick="submitBeli()">Catat Pembelian</button>
     </div>
 
+    <!-- KELOLA KATEGORI -->
+    <div class="card cp fi">
+      <div class="ct" onclick="S.showManageCats=!S.showManageCats;renderBeli()" style="cursor:pointer;margin-bottom:0">
+        <div class="cb r"></div><span class="cl">Kelola Kategori</span>
+        <span style="margin-left:auto;color:var(--text3);font-size:12px">${S.showManageCats?'▲':'▼'}</span>
+      </div>
+      ${S.showManageCats?`
+      <div style="margin-top:14px">
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="field" style="margin:0;width:44px"><label>Ikon</label>
+            <input type="text" class="inp inp-sm" style="text-align:center" placeholder="📦" value="${S.newCatIcon}"
+              oninput="S.newCatIcon=this.value" maxlength="2">
+          </div>
+          <div class="field" style="margin:0;flex:1"><label>Nama Kategori</label>
+            <input type="text" class="inp inp-sm" placeholder="Misal: Listrik, Transport..."
+              value="${S.newCatLabel}" oninput="S.newCatLabel=this.value"
+              onkeydown="if(event.key==='Enter')addCat()">
+          </div>
+          <button class="btn btn-g btn-sm" style="flex-shrink:0" onclick="addCat()">+ Tambah</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${S.customCats.map(c=>`
+            <div style="display:flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px">
+              <span>${c.icon}</span>
+              <span style="font-size:12px;font-weight:500;color:var(--text1)">${c.label}</span>
+              ${!['pakan','obat','alat','lain'].includes(c.id)?`<button onclick="delCat('${c.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">×</button>`:'<span style="font-size:10px;color:var(--text3);margin-left:2px">default</span>'}
+            </div>`).join('')}
+        </div>
+      </div>`:''}
+    </div>
+
     ${E.length>0?`<div class="card fi" style="overflow:hidden;padding:0">
       <div style="padding:13px 16px;border-bottom:1px solid var(--border2)" class="ct"><div class="cb r"></div><span class="cl">Riwayat Pembelian</span></div>
       <div class="tbl-w"><table>
-        <thead><tr><th>Tgl</th><th>Kat</th><th>Item</th><th>Qty</th><th>Total</th><th></th></tr></thead>
+        <thead><tr><th>Tgl</th><th>Kat</th><th>Item</th><th>Toko</th><th>Qty</th><th>Total</th><th></th></tr></thead>
         <tbody>${[...E].reverse().map(e=>{
-          const cat=CATS.find(c=>c[0]===e.cat)||['','📦',''];
+          const cat=S.customCats.find(c=>c.id===e.cat)||{icon:'📦',label:e.cat};
           return`<tr>
             <td class="td-d">${fmtD(e.date)}</td>
-            <td title="${cat[2]}">${cat[1]}</td>
+            <td title="${cat.label}">${cat.icon}</td>
             <td>${e.item}${e.note?`<div style="font-size:10px;color:var(--text3)">${e.note}</div>`:''}</td>
+            <td style="font-size:11px;color:var(--text3)">${e.toko||'—'}${e.tokoContact?`<div>${e.tokoContact}</div>`:''}</td>
             <td>${e.qty} ${e.unit}</td>
             <td class="td-r" style="white-space:nowrap">${fRp(e.total)}</td>
             <td>
@@ -1063,7 +1208,7 @@ function renderBeli(){
     </div>
     <div class="row-sb"><span style="font-size:12px;color:var(--text2)">Total Pembelian</span>
       <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--red)">${fRp(totalBeli)}</span></div>`:''}
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div><div>Catat pengeluaran pertama di atas</div></div>`:''}`;
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div></div>`:''}`;
 }
 function updBeliTotal(){
   const qty=+(document.getElementById('bq')?.value||0), price=+(document.getElementById('bp')?.value||0);
@@ -1098,11 +1243,14 @@ function submitBeli(){
   const bd=S.b_date||today(), item=document.getElementById('bi')?.value, qty=document.getElementById('bq')?.value;
   const unit=document.getElementById('bu')?.value||'', price=document.getElementById('bp')?.value;
   const note=document.getElementById('bn')?.value||'';
+  const toko=document.getElementById('btoko')?.value||'';
+  const tokoContact=document.getElementById('bcontact')?.value||'';
   if(!item||!qty||!price)return;
-  addPurchase({date:bd,cat:S.b_cat,item,qty:+qty,unit,price:+price,total:+qty*+price,note,img:S.b_img||null});
+  addPurchase({date:bd,cat:S.b_cat||'pakan',item,qty:+qty,unit,price:+price,total:+qty*+price,note,toko,tokoContact,img:S.b_img||null});
   S.b_item='';S.b_qty='';S.b_price='';S.b_note='';S.b_img=null;
   renderBeli();
 }
+
 
 // ═══════════════════════════════════════════════
 // MAIN RENDER
