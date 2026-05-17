@@ -1148,7 +1148,7 @@ function renderJual(){
       'Volume Terjual (kg)',
       svgBar(Object.entries(E.reduce((m,e)=>{m[e.date]=(m[e.date]||0)+e.kg;return m;},{})).sort().slice(-20).map(([d,v])=>({v,l:fmtD(d)})),{color:'#4caf7d'})
     ):''}
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div></div>`:''}\`;
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div></div>`:''}`;
 }
 function updJualTotal(){
   const kg=+(document.getElementById('jkg')?.value||0);
@@ -1309,7 +1309,7 @@ function renderBeli(){
         E.reduce((s,e)=>s+e.total,0),'Total','pengeluaran'
       )
     ):''}
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div></div>`:''}\`;
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div></div>`:''}`;
 }
 function updBeliTotal(){
   const qty=+(document.getElementById('bq')?.value||0), price=+(document.getElementById('bp')?.value||0);
