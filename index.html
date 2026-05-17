@@ -39,7 +39,7 @@ input[type=number]{-moz-appearance:textfield}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 /* HEADER */
-#header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:80;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:space-between;gap:10px}
+#header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:80;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:space-between;gap:10px;height:64px}
 #logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 #logo-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--gold);white-space:nowrap}
 #logo-sub{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
@@ -84,6 +84,35 @@ input[type=number]{-moz-appearance:textfield}
 
 /* CONTENT */
 #content{padding:16px;display:flex;flex-direction:column;gap:14px;max-width:600px;margin:0 auto}
+
+/* ── RESPONSIVE: DESKTOP ── */
+@media(min-width:900px){
+  body{display:grid;grid-template-columns:240px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+  #header{grid-column:1/-1;display:flex}
+  .ham-btn{display:none}
+  #overlay{display:none}
+  #sidebar{
+    grid-row:2;grid-column:1;
+    position:static;transform:none!important;visibility:visible!important;
+    height:calc(100vh - 64px);box-shadow:none;border-right:1px solid var(--border);
+    width:240px;min-width:240px;max-width:240px;
+    padding-bottom:24px;overflow-y:auto;
+  }
+  #main-wrap{grid-row:2;grid-column:2;overflow-y:auto;height:calc(100vh - 64px)}
+  #content{max-width:900px;padding:24px;gap:18px;margin:0 auto}
+  .kpi-g{grid-template-columns:repeat(4,1fr)}
+  .stat-4{grid-template-columns:repeat(4,1fr)}
+  .sum-b{grid-template-columns:repeat(4,1fr)}
+  .price-g{grid-template-columns:1fr 1fr}
+  .ig{grid-template-columns:repeat(4,1fr)}
+  .exp-r{grid-template-columns:repeat(4,1fr)}
+  .frow{grid-template-columns:1fr 1fr 1fr}
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .chart-row .chart-box{margin-bottom:0}
+  .cp{padding:24px}
+  table th,table td{padding:12px 16px}
+  .kpi{padding:20px}
+}
 
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm)}
@@ -207,8 +236,6 @@ tbody tr:hover{background:var(--surface2)}
 
 <!-- SIDEBAR OVERLAY -->
 <div id="overlay" onclick="closeSidebar()"></div>
-
-<!-- SIDEBAR -->
 <div id="sidebar">
   <div id="sb-header">
     <div id="sb-logo">Svarna Farm</div>
@@ -273,7 +300,9 @@ tbody tr:hover{background:var(--surface2)}
   </div>
 </div>
 
+<div id="main-wrap">
 <div id="content"></div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -672,6 +701,51 @@ function svgDonut(segments,total,centerLabel,centerSub){
   </svg>`;
 }
 
+function svgBar(pts, opts={}){
+  const {w=320,h=100,color='#d4a832',color2=null,pts2=[],unit='',minY=0}=opts;
+  if(pts.length<1) return `<div class="chart-no-data">Belum cukup data</div>`;
+  const pl={t:6,r:8,b:24,l:50};
+  const iw=w-pl.l-pl.r, ih=h-pl.t-pl.b;
+  const allVals=[...pts.map(p=>p.v),...pts2.map(p=>p.v)];
+  const yMax=Math.max(...allVals,1)*1.15, yMin=minY;
+  const bw=Math.max(4, (iw/pts.length)*0.6);
+  const xS=i=>pl.l+(i+0.5)*(iw/pts.length);
+  const yS=v=>pl.t+ih-((v-yMin)/(yMax-yMin))*ih;
+  const yH=v=>Math.max(1,((v-yMin)/(yMax-yMin))*ih);
+  const yTicks=[0,0.5,1].map(f=>yMin+(yMax-yMin)*f);
+  let svg=`<svg viewBox="0 0 ${w} ${h}" class="chart-svg" style="height:${h}px">`;
+  yTicks.forEach(v=>{
+    const y=yS(v);
+    svg+=`<line x1="${pl.l}" y1="${y.toFixed(1)}" x2="${pl.l+iw}" y2="${y.toFixed(1)}" stroke="rgba(128,128,128,0.12)" stroke-width="1"/>`;
+    svg+=`<text x="${pl.l-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--text3)" font-family="DM Sans">${Math.round(v)}${unit}</text>`;
+  });
+  pts.forEach((p,i)=>{
+    const x=xS(i), bh=yH(p.v), by=yS(p.v);
+    const offset=color2?-bw/2-1:0;
+    svg+=`<rect x="${(x+offset-bw/2).toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" rx="2" opacity="0.85"/>`;
+  });
+  if(color2&&pts2.length>0){
+    pts2.forEach((p,i)=>{
+      const x=xS(i), bh=yH(p.v), by=yS(p.v);
+      svg+=`<rect x="${(x+bw/2+1-bw/2).toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color2}" rx="2" opacity="0.85"/>`;
+    });
+  }
+  const step=Math.max(1,Math.ceil(pts.length/6));
+  pts.forEach((p,i)=>{
+    if(i%step!==0&&i!==pts.length-1)return;
+    svg+=`<text x="${xS(i).toFixed(1)}" y="${h-4}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="DM Sans">${p.l||''}</text>`;
+  });
+  svg+=`</svg>`;
+  return svg;
+}
+
+function miniCharts(title1,svg1,title2,svg2){
+  return `<div class="chart-row">
+    <div class="chart-box fi"><div class="chart-title">${title1}</div>${svg1}</div>
+    <div class="chart-box fi"><div class="chart-title">${title2}</div>${svg2}</div>
+  </div>`;
+}
+
 // ═══════════════════════════════════════════════
 // RENDER: LOG PRODUKSI
 // ═══════════════════════════════════════════════
@@ -706,6 +780,12 @@ function renderLog(){
         <div style="font-size:11px;color:var(--text2);margin-top:5px">${E.reduce((s,e)=>s+e.kg,0).toFixed(2)} kg total</div>
       </div>
     </div>`:''}
+    ${E.length>=2?miniCharts(
+      'Produksi Harian (Butir)',
+      svgBar(E.slice(-20).map(e=>({v:e.butir,l:fmtD(e.date)})),{color:'#d4a832'}),
+      'HDP % — Tren',
+      svgLine(E.slice(-20).map(e=>({v:getHDP(e.butir),l:fmtD(e.date)})),{color:'#4caf7d',unit:'%',minY:0,maxY:100,refLines:[{v:55,color:'#e0a030',label:'BEP'}]})
+    ):''}
     ${E.length===0?`<div class="empty"><div class="empty-i">🥚</div><div class="empty-t">Belum ada data produksi</div><div>Input hari pertama di bawah</div></div>`:''}
     <div class="card cp fi">
       <div class="ct"><div class="cb"></div><span class="cl">Input Produksi</span></div>
@@ -873,6 +953,7 @@ function renderAnalitik(){
     </div>`:''}
 
     ${sec==='charts'?`
+    <div class="chart-row">
     <div class="chart-box fi">
       <div class="chart-title">HDP % — Tren Produksi</div>
       ${svgLine(hdpPts,{color:'#d4a832',unit:'%',minY:0,maxY:100,refLines:[{v:55,color:'#4caf7d',label:'BEP'},{v:70,color:'#d4a832',label:'Peak'}]})}
@@ -880,6 +961,7 @@ function renderAnalitik(){
     <div class="chart-box fi">
       <div class="chart-title">HPP per kg Telur (Rp)</div>
       ${svgLine(hppPts,{color:'#4caf7d',unit:'',refLines:[{v:FLOOR_PRICE,color:'#e05555',label:'Floor'}]})}
+    </div>
     </div>
     ${fcrPts.length>=2?`<div class="chart-box fi">
       <div class="chart-title">FCR Harian (Pakan/Telur)</div>
@@ -1060,7 +1142,13 @@ function renderJual(){
     </div>
     <div class="row-sb"><span style="font-size:12px;color:var(--text2)">Total Revenue</span>
       <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--gold)">${fRp(totalRev)}</span></div>`:''}
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div></div>`:''}`;
+    ${E.length>=2?miniCharts(
+      'Revenue Harian (Rp)',
+      svgLine(Object.entries(E.reduce((m,e)=>{m[e.date]=(m[e.date]||0)+e.total;return m;},{})).sort().slice(-20).map(([d,v])=>({v,l:fmtD(d)})),{color:'#d4a832',unit:''}),
+      'Volume Terjual (kg)',
+      svgBar(Object.entries(E.reduce((m,e)=>{m[e.date]=(m[e.date]||0)+e.kg;return m;},{})).sort().slice(-20).map(([d,v])=>({v,l:fmtD(d)})),{color:'#4caf7d'})
+    ):''}
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🧾</div><div class="empty-t">Belum ada penjualan</div></div>`:''}\`;
 }
 function updJualTotal(){
   const kg=+(document.getElementById('jkg')?.value||0);
@@ -1209,7 +1297,19 @@ function renderBeli(){
     </div>
     <div class="row-sb"><span style="font-size:12px;color:var(--text2)">Total Pembelian</span>
       <span style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--red)">${fRp(totalBeli)}</span></div>`:''}
-    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div></div>`:''}`;
+    ${E.length>=2?miniCharts(
+      'Pengeluaran Harian (Rp)',
+      svgLine(Object.entries(E.reduce((m,e)=>{m[e.date]=(m[e.date]||0)+e.total;return m;},{})).sort().slice(-20).map(([d,v])=>({v,l:fmtD(d)})),{color:'#e05555',unit:''}),
+      'Per Kategori',
+      svgDonut(
+        [...new Set(E.map(e=>e.cat))].map(cat=>{
+          const cc=S.customCats.find(c=>c.id===cat)||{icon:'📦',label:cat};
+          return {v:E.filter(e=>e.cat===cat).reduce((s,e)=>s+e.total,0),label:cc.icon+' '+cc.label,color:['#d4a832','#4caf7d','#e0a030','#4a9fd4','#e05555','#9b59b6'][([...new Set(E.map(e=>e.cat))].indexOf(cat))%6],sub:''};
+        }),
+        E.reduce((s,e)=>s+e.total,0),'Total','pengeluaran'
+      )
+    ):''}
+    ${E.length===0?`<div class="empty fi"><div class="empty-i">🛒</div><div class="empty-t">Belum ada pembelian</div></div>`:''}\`;
 }
 function updBeliTotal(){
   const qty=+(document.getElementById('bq')?.value||0), price=+(document.getElementById('bp')?.value||0);
