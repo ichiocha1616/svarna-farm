@@ -115,7 +115,7 @@ body.light .bg-orb{opacity:0.07}
   backdrop-filter:blur(16px);
   -webkit-backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border-subtle);
-  padding:0 24px;
+  padding:0 12px;
   position:sticky;
   top:0;
   z-index:80;
@@ -123,40 +123,79 @@ body.light .bg-orb{opacity:0.07}
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:16px;
-  height:72px;
+  gap:8px;
+  height:56px;
 }
-#logo{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-#logo-name{font-weight:800;font-size:18px;color:var(--text1);letter-spacing:-0.5px;white-space:nowrap}
-#logo-sub{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;font-weight:700}
-#header-right{display:flex;gap:12px;align-items:center;flex-shrink:0}
+#logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+#logo-name{font-weight:800;font-size:13px;color:var(--text1);letter-spacing:-0.5px;white-space:nowrap}
+#logo-sub{display:none}
+#header-right{display:flex;gap:8px;align-items:center;flex-shrink:0}
+
+@media(min-width:900px){
+  #header{padding:0 24px;gap:16px;height:72px}
+  #logo{gap:12px}
+  #logo-name{font-size:18px}
+  #logo-sub{display:block;font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;font-weight:700}
+  #header-right{gap:12px}
+}
 
 /* TOPBAR CUSTOM */
 .topbar-profile{
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:8px 16px;
+  gap:6px;
+  padding:4px 8px;
   background:var(--surface-hover);
   border:1px solid var(--border-subtle);
   border-radius:30px;
-  font-size:12px;
+  font-size:11px;
   font-weight:500;
 }
 .topbar-role-badge{
-  font-size:9px;
+  font-size:8px;
   font-weight:800;
   text-transform:uppercase;
-  letter-spacing:1.2px;
-  padding:3px 10px;
+  letter-spacing:0.8px;
+  padding:2px 6px;
   border-radius:30px;
   background:var(--gold-glow);
   color:var(--gold);
   border:1px solid var(--border);
 }
-.breadcrumbs{display:none}
 @media(min-width:900px){
-  .breadcrumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:500;margin-left:20px}
+  .topbar-profile{
+    gap:10px;
+    padding:8px 16px;
+    font-size:12px;
+  }
+  .topbar-role-badge{
+    font-size:9px;
+    letter-spacing:1.2px;
+    padding:3px 10px;
+  }
+}
+@media(max-width:899px) {
+  #topbar-user-name {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .logout-text {
+    display: none;
+  }
+  #header-logout-btn {
+    padding: 8px 10px !important;
+  }
+}
+@media(max-width:600px) {
+  #topbar-user-name {
+    display: none;
+  }
+}
+.breadcrumbs{display:none !important}
+@media(min-width:900px){
+  .breadcrumbs.visible{display:flex !important;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-weight:500;margin-left:20px}
   .breadcrumbs a{color:var(--text2);text-decoration:none;transition:color .2s}
   .breadcrumbs a:hover{color:var(--gold)}
   .breadcrumbs span{color:var(--text3)}
@@ -338,10 +377,10 @@ body.light .bg-orb{opacity:0.07}
 /* CONTENT CONTAINERS */
 #main-wrap{width:100%}
 #content{
-  padding:24px;
+  padding:16px;
   display:flex;
   flex-direction:column;
-  gap:24px;
+  gap:16px;
   max-width:100%;
   margin:0 auto;
 }
@@ -359,7 +398,7 @@ body.light .bg-orb{opacity:0.07}
     width:260px;padding-bottom:24px;overflow-y:auto;
   }
   #main-wrap{grid-row:2;grid-column:2;overflow-y:auto;height:calc(100vh - 72px)}
-  #content{padding:40px;gap:36px;max-width:1300px}
+  #content{padding:24px 32px;gap:24px;max-width:1440px}
   .kpi-g{grid-template-columns:repeat(4,1fr)}
   .stat-4{grid-template-columns:repeat(4,1fr)}
   .sum-b{grid-template-columns:repeat(3,1fr)}
@@ -367,11 +406,11 @@ body.light .bg-orb{opacity:0.07}
   .ig{grid-template-columns:repeat(4,1fr)}
   .exp-r{grid-template-columns:repeat(4,1fr)}
   .frow{grid-template-columns:repeat(3,1fr)}
-  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
   .chart-row .chart-box{margin-bottom:0}
-  .cp{padding:32px}
-  table th,table td{padding:14px 20px}
-  .kpi{padding:24px}
+  .cp{padding:24px}
+  table th,table td{padding:10px 14px}
+  .kpi{padding:18px}
 }
 
 /* GLASSMORPHIC PREMIUM CARDS */
@@ -386,18 +425,18 @@ body.light .bg-orb{opacity:0.07}
   transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card:hover{
-  transform:translateY(-4px);
+  transform:translateY(-2px);
   border-color:rgba(212,168,50,0.25);
-  box-shadow:0 16px 36px rgba(212,168,50,0.12);
+  box-shadow:0 12px 28px rgba(212,168,50,0.1);
 }
-.cp{padding:24px}
-.ct{display:flex;align-items:center;gap:12px;margin-bottom:24px}
-.cb{width:4px;height:22px;border-radius:4px;flex-shrink:0;background:var(--gold)}
+.cp{padding:16px}
+.ct{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.cb{width:4px;height:18px;border-radius:3px;flex-shrink:0;background:var(--gold)}
 .cb.g{background:var(--green)}.cb.a{background:var(--amber)}.cb.r{background:var(--red)}
-.cl{font-size:13px;font-weight:800;color:var(--text1);letter-spacing:1.2px;text-transform:uppercase}
+.cl{font-size:12px;font-weight:800;color:var(--text1);letter-spacing:1px;text-transform:uppercase}
 
 /* KPI DASHBOARD */
-.kpi-g{display:grid;grid-template-columns:1fr;gap:16px}
+.kpi-g{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:600px) and (max-width:899px){
   .kpi-g{grid-template-columns:repeat(2,1fr)}
 }
@@ -406,25 +445,25 @@ body.light .bg-orb{opacity:0.07}
   backdrop-filter:blur(16px);
   -webkit-backdrop-filter:blur(16px);
   border:1px solid var(--border-subtle);
-  border-radius:20px;
-  padding:24px;
+  border-radius:16px;
+  padding:16px;
   box-shadow:var(--shadow-sm);
   transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display:flex;
   flex-direction:column;
   justify-content:space-between;
-  min-height:130px;
+  min-height:110px;
 }
 .kpi:hover{
-  transform:translateY(-4px);
-  box-shadow:0 16px 36px rgba(212,168,50,0.12);
+  transform:translateY(-2px);
+  box-shadow:0 12px 28px rgba(212,168,50,0.1);
   border-color:rgba(212,168,50,0.25);
 }
-.kl{font-size:10px;font-weight:800;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.kl{font-size:9px;font-weight:800;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
 .kv{
   font-family:'Outfit',var(--font-sans);
   font-weight:800;
-  font-size:26px;
+  font-size:22px;
   line-height:1.1;
   letter-spacing:-0.5px;
   color:var(--text1);
@@ -432,27 +471,27 @@ body.light .bg-orb{opacity:0.07}
 .kv.serif{
   font-family:'Outfit',var(--font-sans);
   font-weight:800;
-  font-size:28px;
+  font-size:24px;
   color:var(--gold);
 }
-.ks{font-size:11px;color:var(--text2);margin-top:8px;font-weight:600}
+.ks{font-size:10px;color:var(--text2);margin-top:6px;font-weight:600}
 .bdg{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding:4px 12px;
+  padding:3px 10px;
   border-radius:30px;
-  font-size:10px;
+  font-size:9px;
   font-weight:800;
-  margin-top:10px;
+  margin-top:8px;
   letter-spacing:0.8px;
   text-transform:uppercase;
 }
 
 /* FORM CONTROLS */
-.field{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .field label,.flbl{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.8px}
-.frow{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px}
+.frow{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
 @media(min-width:600px){
   .frow{grid-template-columns:1fr 1fr}
 }
@@ -460,35 +499,35 @@ body.light .bg-orb{opacity:0.07}
   width:100%;
   background:var(--inp);
   border:1px solid rgba(255,255,255,0.06);
-  border-radius:14px;
-  padding:14px 18px;
+  border-radius:10px;
+  padding:10px 14px;
   color:var(--text1);
   font-family:var(--font-sans);
-  font-size:14px;
+  font-size:13px;
   font-weight:500;
   transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .inp:focus{
   border-color:var(--gold);
-  box-shadow:0 0 0 4px var(--gold-glow);
+  box-shadow:0 0 0 3px var(--gold-glow);
   background:rgba(0,0,0,0.4);
 }
 .inp-lg{
   font-family:'Outfit',var(--font-sans);
-  font-size:26px;
+  font-size:20px;
   font-weight:800;
   color:var(--gold);
-  padding:16px 24px;
+  padding:12px 18px;
   text-align:center;
 }
-.inp-sm{font-size:13px;padding:12px 16px;border-radius:12px}
+.inp-sm{font-size:12px;padding:8px 12px;border-radius:8px}
 select.inp{
   -webkit-appearance:none;
   appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
-  background-position:right 18px center;
-  padding-right:44px;
+  background-position:right 14px center;
+  padding-right:38px;
 }
 body.light select.inp {
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23475569' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
@@ -498,17 +537,17 @@ body.light select.inp {
 .btn{
   width:100%;
   border:none;
-  border-radius:14px;
-  padding:16px;
+  border-radius:10px;
+  padding:12px 16px;
   font-family:var(--font-sans);
-  font-size:14px;
+  font-size:13px;
   font-weight:700;
   cursor:pointer;
   transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
+  gap:8px;
   letter-spacing:0.8px;
 }
 .btn:hover{
@@ -760,16 +799,39 @@ body.logged-out #main-wrap{height:100vh !important;grid-column:1/-1 !important;g
 .op-input-lbl{font-size:16px;font-weight:800;color:var(--text1);margin-bottom:10px}
 .op-inp{
   font-family:'Outfit',var(--font-sans);
-  font-size:26px;
-  height:64px;
+  font-size:18px;
+  height:44px;
   text-align:center;
-  border:2px solid var(--border-subtle);
-  border-radius:18px;
+  border:1.5px solid var(--border-subtle);
+  border-radius:10px;
   font-weight:800;
   background:rgba(0,0,0,0.3);
 }
-.op-inp:focus{border-color:var(--gold);box-shadow:0 0 0 6px var(--gold-glow)}
-.op-btn-large{height:68px;font-size:18px;border-radius:20px;font-weight:800}
+.op-inp:focus{border-color:var(--gold);box-shadow:0 0 0 4px var(--gold-glow)}
+.op-btn-large{height:52px;font-size:15px;border-radius:12px;font-weight:800}
+
+.op-field-container {
+  margin-bottom: 12px;
+}
+@media(min-width:900px){
+  .op-field-container {
+    margin-bottom: 18px;
+  }
+}
+
+.op-label {
+  display: block;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+@media(min-width:900px){
+  .op-label {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+}
 
 /* ALERT CENTER */
 .alert-center{display:flex;flex-direction:column;gap:12px}
@@ -977,7 +1039,7 @@ body.role-operator .breadcrumbs {
   </button>
   <div id="logo">
     <i data-lucide="building-2" style="color:var(--gold); width:20px; height:20px; stroke-width:2.5px; flex-shrink:0;"></i>
-    <div><div id="logo-name" style="font-weight:700;font-size:16px;">BUM Desa Gemah Ripah</div><div id="logo-sub" style="font-size:9px;letter-spacing:1px;font-weight:600;color:var(--text3);">OPERATING SYSTEM</div></div>
+    <div><div id="logo-name" style="font-weight:700;">BUM Desa Gemah Ripah</div><div id="logo-sub" style="font-size:9px;letter-spacing:1px;font-weight:600;color:var(--text3);">OPERATING SYSTEM</div></div>
   </div>
   
   <!-- Breadcrumbs -->
@@ -991,7 +1053,7 @@ body.role-operator .breadcrumbs {
     </div>
     
     <button class="icon-btn" onclick="toggleTheme()" id="theme-btn"><i data-lucide="sun" style="width:16px;height:16px;"></i></button>
-    <button class="icon-btn" onclick="logout()" id="header-logout-btn" style="display:none; border-color:var(--red); color:var(--red);" title="Keluar"><i data-lucide="log-out" style="width:14px;height:14px;color:var(--red)"></i> Keluar</button>
+    <button class="icon-btn" onclick="logout()" id="header-logout-btn" style="display:none; border-color:var(--red); color:var(--red);" title="Keluar"><i data-lucide="log-out" style="width:14px;height:14px;color:var(--red)"></i> <span class="logout-text">Keluar</span></button>
   </div>
 </div>
 
@@ -1532,7 +1594,7 @@ function updateHeader() {
   const logoutBtn = document.getElementById('header-logout-btn');
 
   if (!S.currentUser) {
-    if (breadcrumbsEl) breadcrumbsEl.style.display = 'none';
+    if (breadcrumbsEl) breadcrumbsEl.classList.remove('visible');
     if (profileWidget) profileWidget.style.display = 'none';
     if (logoutBtn) logoutBtn.style.display = 'none';
     return;
@@ -1549,7 +1611,11 @@ function updateHeader() {
 
   // Update Breadcrumbs
   if (breadcrumbsEl) {
-    breadcrumbsEl.style.display = S.currentUser.role === 'operator' ? 'none' : 'flex';
+    if (S.currentUser.role === 'operator') {
+      breadcrumbsEl.classList.remove('visible');
+    } else {
+      breadcrumbsEl.classList.add('visible');
+    }
     let path = `BUM Desa`;
     let detail = `Hub BUM Desa`;
     
@@ -3680,7 +3746,7 @@ function renderOperator() {
           <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0;">🏛️ Workspace Operator Kandang</h2>
           <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Unit Ketahanan Pangan: Svarna Farm Tuban</div>
         </div>
-        <button class="btn" onclick="logout()" style="background: var(--red-glow); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;">🚪 Keluar</button>
+        <button class="btn" onclick="logout()" style="background: var(--red-glow); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600;">🚪 <span class="logout-text">Keluar</span></button>
       </div>
 
       <div class="card cp" style="margin-bottom: 16px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
@@ -3691,35 +3757,35 @@ function renderOperator() {
       <div class="op-grid">
         
         <div>
-          <div class="card cp" style="padding: 20px; margin-bottom: 16px;">
-            <div class="ct" style="margin-bottom: 16px;"><div class="cb"></div><span class="cl">Input Data Harian — ${fmtD(S.opDate)}</span></div>
+          <div class="card cp" style="margin-bottom: 16px;">
+            <div class="ct"><div class="cb"></div><span class="cl">Input Data Harian — ${fmtD(S.opDate)}</span></div>
             
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 700; color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">🥚 Telur Layak Jual (Butir)</label>
-              <input type="number" min="0" step="1" id="val-butir" class="inp" value="${S.opTemp.butir}" oninput="opInput('butir', this.value)" style="font-size: 16px; font-weight: 700; color: var(--gold); background: var(--surface2); border: 1px solid var(--border-subtle); padding: 12px 16px; width: 100%;">
+            <div class="op-field-container">
+              <label class="op-label">🥚 Telur Layak Jual (Butir)</label>
+              <input type="number" min="0" step="1" id="val-butir" class="inp op-inp" value="${S.opTemp.butir}" oninput="opInput('butir', this.value)" style="color: var(--gold); background: var(--surface2); width: 100%;">
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 700; color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">🍳 Telur Rusak / BS (Butir)</label>
-              <input type="number" min="0" step="1" id="val-telurRusak" class="inp" value="${S.opTemp.telurRusak}" oninput="opInput('telurRusak', this.value)" style="font-size: 16px; font-weight: 700; color: var(--red); background: var(--surface2); border: 1px solid var(--border-subtle); padding: 12px 16px; width: 100%;">
+            <div class="op-field-container">
+              <label class="op-label">🍳 Telur Rusak / BS (Butir)</label>
+              <input type="number" min="0" step="1" id="val-telurRusak" class="inp op-inp" value="${S.opTemp.telurRusak}" oninput="opInput('telurRusak', this.value)" style="color: var(--red); background: var(--surface2); width: 100%;">
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 700; color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">⚖️ Berat Telur Layak Jual (kg)</label>
-              <input type="number" min="0" step="0.01" id="val-kg" class="inp" value="${S.opTemp.kg}" oninput="opInput('kg', this.value, true)" style="font-size: 16px; font-weight: 700; color: var(--gold); background: var(--surface2); border: 1px solid var(--border-subtle); padding: 12px 16px; width: 100%;">
+            <div class="op-field-container">
+              <label class="op-label">⚖️ Berat Telur Layak Jual (kg)</label>
+              <input type="number" min="0" step="0.01" id="val-kg" class="inp op-inp" value="${S.opTemp.kg}" oninput="opInput('kg', this.value, true)" style="color: var(--gold); background: var(--surface2); width: 100%;">
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; font-weight: 700; color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">🌾 Konsumsi Pakan (kg)</label>
-              <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="font-size: 16px; font-weight: 700; color: var(--amber); background: var(--surface2); border: 1px solid var(--border-subtle); padding: 12px 16px; width: 100%;">
+            <div class="op-field-container">
+              <label class="op-label">🌾 Konsumsi Pakan (kg)</label>
+              <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp op-inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="color: var(--amber); background: var(--surface2); width: 100%;">
             </div>
 
-            <div style="margin-bottom: 24px;">
-              <label style="display: block; font-weight: 700; color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">☠️ Ayam Mati (Ekor)</label>
-              <input type="number" min="0" step="1" id="val-ayamMati" class="inp" value="${S.opTemp.ayamMati}" oninput="opInput('ayamMati', this.value)" style="font-size: 16px; font-weight: 700; color: var(--red); background: var(--surface2); border: 1px solid var(--border-subtle); padding: 12px 16px; width: 100%;">
+            <div class="op-field-container" style="margin-bottom: 18px;">
+              <label class="op-label">☠️ Ayam Mati (Ekor)</label>
+              <input type="number" min="0" step="1" id="val-ayamMati" class="inp op-inp" value="${S.opTemp.ayamMati}" oninput="opInput('ayamMati', this.value)" style="color: var(--red); background: var(--surface2); width: 100%;">
             </div>
 
-            <button id="op-submit-btn" class="btn btn-g" onclick="submitOpLog()" style="width: 100%; padding: 16px; font-size: 15px; font-weight: 800; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <button id="op-submit-btn" class="btn btn-g" onclick="submitOpLog()" style="width: 100%; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
               💾 Simpan & Sinkronisasi Data
             </button>
           </div>
