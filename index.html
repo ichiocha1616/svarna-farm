@@ -2976,7 +2976,12 @@ function toggleTheme(){S.dark=!S.dark;applyTheme();LS.save(); if(db){db.collecti
 function applyTheme(){
   document.body.classList.toggle('light',!S.dark);
   const btn=document.getElementById('theme-btn');
-  if(btn)btn.textContent=S.dark?'☀️':'🌙';
+  if(btn) {
+    btn.innerHTML = S.dark 
+      ? '<i data-lucide="sun" style="width:16px;height:16px;"></i>' 
+      : '<i data-lucide="moon" style="width:16px;height:16px;"></i>';
+    if(window.lucide) lucide.createIcons();
+  }
 }
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
