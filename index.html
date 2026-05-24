@@ -1741,10 +1741,10 @@ function renderHub() {
 
   // Render main wrappers
   let contentHtml = `
-    <div class="card cp fi" style="background:${S.dark?'linear-gradient(135deg,#132218,#1a2e20)':'linear-gradient(135deg,#fff,#f4efe4)'}; border:1px solid var(--border)">
+    <div class="card cp fi" style="background:${S.dark?'rgba(15,22,32,0.7)':'rgba(255,255,255,0.85)'}; border:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
-          <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--gold);font-weight:700">🏛️ BUM Desa Gemah Ripah</h2>
+          <h2 style="font-family:'Outfit',var(--font-sans);font-size:22px;color:var(--gold);font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;"><i data-lucide="building-2" style="width:24px;height:24px;color:var(--gold);"></i> BUM Desa Gemah Ripah</h2>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600">Operating System — Pusat Konsolidasi & GCG</div>
         </div>
         <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">Perdes No. 4/2025 · Tuban</div>
@@ -1753,10 +1753,10 @@ function renderHub() {
 
     <!-- SUB-TABS NAVIGATION -->
     <div class="hub-subtabs fi">
-      <button class="subtab-btn ${S.hubSubTab==='ringkasan'?'active':''}" onclick="switchHubTab('ringkasan')">📈 Ringkasan Eksekutif</button>
-      <button class="subtab-btn ${S.hubSubTab==='finansial'?'active':''}" onclick="switchHubTab('finansial')">💰 Konsolidasi Finansial</button>
-      <button class="subtab-btn ${S.hubSubTab==='jurnal'?'active':''}" onclick="switchHubTab('jurnal')">🧾 Ekspor Jurnal</button>
-      <button class="subtab-btn ${S.hubSubTab==='governance'?'active':''}" onclick="switchHubTab('governance')">⚖️ GCG & Tata Kelola</button>
+      <button class="subtab-btn ${S.hubSubTab==='ringkasan'?'active':''}" onclick="switchHubTab('ringkasan')"><i data-lucide="line-chart" style="width:14px;height:14px;"></i> Ringkasan Eksekutif</button>
+      <button class="subtab-btn ${S.hubSubTab==='finansial'?'active':''}" onclick="switchHubTab('finansial')"><i data-lucide="wallet" style="width:14px;height:14px;"></i> Konsolidasi Finansial</button>
+      <button class="subtab-btn ${S.hubSubTab==='jurnal'?'active':''}" onclick="switchHubTab('jurnal')"><i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> Ekspor Jurnal</button>
+      <button class="subtab-btn ${S.hubSubTab==='governance'?'active':''}" onclick="switchHubTab('governance')"><i data-lucide="scale" style="width:14px;height:14px;"></i> GCG & Tata Kelola</button>
     </div>
   `;
 
