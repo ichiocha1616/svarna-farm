@@ -261,24 +261,24 @@ body.dark #header{
   z-index:90;
   transform:translateX(calc(-100% - 40px));
   transition:transform .3s cubic-bezier(.4,0,.2,1),visibility .3s;
-  width:260px;
+  width:230px;
   overflow-y:auto;
   box-shadow:none;
-  padding-bottom:24px;
+  padding-bottom:16px;
   visibility:hidden;
   display:flex;
   flex-direction:column;
 }
 #sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,0.15);visibility:visible}
 
-#sb-header{padding:24px 22px 18px;border-bottom:1px solid rgba(255,255,255,0.06)}
-#sb-logo{font-weight:800;font-size:16px;color:#FFFFFF;letter-spacing:-0.3px}
-#sb-sub{font-size:8px;color:rgba(255,255,255,0.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;font-weight:700}
+#sb-header{padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.06)}
+#sb-logo{font-weight:800;font-size:14px;color:#FFFFFF;letter-spacing:-0.3px}
+#sb-sub{font-size:8px;color:rgba(255,255,255,0.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;font-weight:700}
 #sb-session{
-  margin:14px 18px 0;
-  padding:12px;
+  margin:8px 12px 0;
+  padding:10px;
   background:rgba(255,255,255,0.04);
-  border-radius:12px;
+  border-radius:10px;
   border:1px solid rgba(255,255,255,0.06);
   font-size:11px;
   color:rgba(255,255,255,0.5);
@@ -287,16 +287,16 @@ body.dark #header{
 }
 #sb-session.visible{display:block}
 
-.nav-section{padding:14px 0 6px}
-.nav-lbl{padding:6px 22px;font-size:9px;font-weight:800;color:rgba(255,255,255,0.25);letter-spacing:2px;text-transform:uppercase}
-.nav-row{display:flex;align-items:center;cursor:pointer;user-select:none;margin:1px 12px;border-radius:10px;overflow:hidden;transition:all .2s}
+.nav-section{padding:8px 0 2px}
+.nav-lbl{padding:4px 18px;font-size:9px;font-weight:800;color:rgba(255,255,255,0.25);letter-spacing:2px;text-transform:uppercase}
+.nav-row{display:flex;align-items:center;cursor:pointer;user-select:none;margin:1px 8px;border-radius:10px;overflow:hidden;transition:all .2s}
 .nav-link{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:10px 16px;
+  gap:10px;
+  padding:8px 12px;
   flex:1;
-  font-size:13px;
+  font-size:12.5px;
   font-weight:500;
   color:var(--sidebar-text);
   transition:all .2s;
@@ -321,7 +321,7 @@ body.dark #header{
 .nav-row.active {
   box-shadow:inset 3px 0 0 var(--gold);
 }
-.nav-chev{padding:10px 16px 10px 4px;color:rgba(255,255,255,0.25);font-size:12px;transition:transform .2s;cursor:pointer;flex-shrink:0}
+.nav-chev{padding:8px 12px 8px 4px;color:rgba(255,255,255,0.25);font-size:12px;transition:transform .2s;cursor:pointer;flex-shrink:0}
 .nav-row.expanded .nav-chev{transform:rotate(90deg)}
 .nav-sub{overflow:hidden;max-height:0;transition:max-height .25s ease;background:rgba(0,0,0,0.15)}
 .nav-row.expanded+.nav-sub{max-height:280px}
@@ -329,23 +329,23 @@ body.dark #header{
   display:flex;
   align-items:center;
   gap:10px;
-  padding:9px 16px 9px 46px;
-  font-size:12px;
+  padding:7px 12px 7px 38px;
+  font-size:11.5px;
   color:rgba(255,255,255,0.45);
   cursor:pointer;
   transition:all .2s;
-  margin:1px 12px;
+  margin:1px 8px;
   border-radius:8px;
 }
 .nav-sub-item:hover{color:#FFFFFF;background:rgba(255,255,255,0.05)}
 .nav-sub-item.active{color:var(--gold);font-weight:600;background:var(--sidebar-active-bg)}
-.nav-div{height:1px;background:rgba(255,255,255,0.05);margin:10px 22px}
+.nav-div{height:1px;background:rgba(255,255,255,0.05);margin:6px 16px}
 
 #sb-drive{
-  margin:auto 18px 0;
-  padding:14px;
+  margin:auto 12px 0;
+  padding:10px;
   background:rgba(255,255,255,0.04);
-  border-radius:12px;
+  border-radius:10px;
   border:1px solid rgba(255,255,255,0.06);
   flex-shrink:0;
 }
@@ -381,7 +381,7 @@ body.dark #header{
 
 /* ═══ RESPONSIVE GRID LAYOUT ═══ */
 @media(min-width:900px){
-  body{display:grid;grid-template-columns:260px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+  body{display:grid;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
   #header{grid-column:1/-1;display:flex}
   .ham-btn{display:none}
   #overlay{display:none}
@@ -389,7 +389,7 @@ body.dark #header{
     grid-row:2;grid-column:1;
     position:static;transform:none!important;visibility:visible!important;
     height:calc(100vh - 64px);box-shadow:none;
-    width:260px;padding-bottom:24px;overflow-y:auto;
+    width:230px;padding-bottom:16px;overflow-y:auto;
     border-right:none;
   }
   #main-wrap{grid-row:2;grid-column:2;overflow-y:auto;height:calc(100vh - 64px)}
@@ -1595,30 +1595,30 @@ function updateSidebarVisibility() {
   const showAbsensi = role === 'direktur';
 
   const elHub = document.getElementById('nr-hub');
-  if (elHub) elHub.style.display = showHub ? 'block' : 'none';
+  if (elHub) elHub.style.display = showHub ? 'flex' : 'none';
   const lblHub = elHub?.previousElementSibling;
   if (lblHub && lblHub.classList.contains('nav-lbl')) {
     lblHub.style.display = showHub ? 'block' : 'none';
   }
 
   const elSvarna = document.getElementById('nr-svarna');
-  if (elSvarna) elSvarna.style.display = showSvarna ? 'block' : 'none';
+  if (elSvarna) elSvarna.style.display = showSvarna ? 'flex' : 'none';
   const lblSvarna = elSvarna?.previousElementSibling;
   if (lblSvarna && lblSvarna.classList.contains('nav-lbl')) {
     lblSvarna.style.display = showSvarna ? 'block' : 'none';
   }
 
   const elLog = document.getElementById('nr-log');
-  if (elLog) elLog.style.display = showLog ? 'block' : 'none';
+  if (elLog) elLog.style.display = showLog ? 'flex' : 'none';
 
   const elHarga = document.getElementById('nr-harga');
-  if (elHarga) elHarga.style.display = showHarga ? 'block' : 'none';
+  if (elHarga) elHarga.style.display = showHarga ? 'flex' : 'none';
 
   const elJual = document.getElementById('nr-jual');
-  if (elJual) elJual.style.display = showJual ? 'block' : 'none';
+  if (elJual) elJual.style.display = showJual ? 'flex' : 'none';
 
   const elBeli = document.getElementById('nr-beli');
-  if (elBeli) elBeli.style.display = showBeli ? 'block' : 'none';
+  if (elBeli) elBeli.style.display = showBeli ? 'flex' : 'none';
 
   const elAnalitik = document.getElementById('nr-analitik');
   if (elAnalitik) {
