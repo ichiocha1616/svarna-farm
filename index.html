@@ -1497,12 +1497,95 @@ function login() {
 }
 
 function logout() {
+  if (S.currentUser) {
+    writeAuditLog('logout', `Pengguna ${S.currentUser.name} keluar dari sistem.`);
+  }
   S.currentUser = null;
+  S.tab = 'hub';
+  S.section = '';
+  S.opTemp = null;
+  document.body.className = document.body.className.split(' ').filter(c => !c.startsWith('role-')).join(' ');
   LS.save();
   document.body.classList.add('logged-out');
-  const sess = document.getElementById('sb-session');
-  if (sess) {
-    sess.classList.remove('visible');
+  render();
+}
+
+function renderLogin() {
+  document.body.classList.add('logged-out');
+  document.getElementById('content').innerHTML = `
+    <div class="login-box fi">
+      <div class="login-logo">🏛️</div>
+      <div class="login-title">BUM Desa Gemah Ripah</div>
+      <div class="login-sub">Sistem Informasi & Tata Kelola (GCG)</div>
+      <div class="field" style="text-align:left;margin-top:20px">
+        <label>Passcode Pengurus / Petugas</label>
+        <input type="password" id="login-passcode" class="inp inp-lg" placeholder="Masukkan passcode" style="text-align:center;letter-spacing:4px" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <div id="login-error" class="alr alr-w" style="display:none;margin-top:12px;margin-bottom:12px;text-align:center"></div>
+      <button class="btn btn-g" onclick="login()" style="margin-top:10px">Masuk Aplikasi</button>
+      <div style="margin-top:24px;font-size:10px;color:var(--text3);line-height:1.4">
+        Unit Ketahanan Pangan: Svarna Farm<br>
+        Tuwiri Wetan, Tuban
+      </div>
+    </div>
+  `;
+}
+
+function updateSidebarVisibility() {
+  const role = S.currentUser ? S.currentUser.role : 'operator';
+  const showHub = role === 'direktur';
+  const showSvarna = role !== 'operator';
+  const showLog = role !== 'operator';
+  const showHarga = role === 'direktur';
+  const showJual = role === 'direktur';
+  const showBeli = role === 'direktur';
+  const showAnalitik = role !== 'operator';
+  const showData = role === 'direktur';
+  const showAbsensi = role === 'direktur';
+
+  const elHub = document.getElementById('nr-hub');
+  if (elHub) elHub.style.display = showHub ? 'block' : 'none';
+  const lblHub = elHub?.previousElementSibling;
+  if (lblHub && lblHub.classList.contains('nav-lbl')) {
+    lblHub.style.display = showHub ? 'block' : 'none';
+  }
+
+  const elSvarna = document.getElementById('nr-svarna');
+  if (elSvarna) elSvarna.style.display = showSvarna ? 'block' : 'none';
+  const lblSvarna = elSvarna?.previousElementSibling;
+  if (lblSvarna && lblSvarna.classList.contains('nav-lbl')) {
+    lblSvarna.style.display = showSvarna ? 'block' : 'none';
+  }
+
+  const elLog = document.getElementById('nr-log');
+  if (elLog) elLog.style.display = showLog ? 'block' : 'none';
+
+  const elHarga = document.getElementById('nr-harga');
+  if (elHarga) elHarga.style.display = showHarga ? 'block' : 'none';
+
+  const elJual = document.getElementById('nr-jual');
+  if (elJual) elJual.style.display = showJual ? 'block' : 'none';
+
+  const elBeli = document.getElementById('nr-beli');
+  if (elBeli) elBeli.style.display = showBeli ? 'block' : 'none';
+
+  const elAnalitik = document.getElementById('nr-analitik');
+  if (elAnalitik) {
+    elAnalitik.style.display = showAnalitik ? 'flex' : 'none';
+    const lblAnalitik = elAnalitik.parentElement.querySelector('.nav-lbl');
+    if (lblAnalitik) {
+      lblAnalitik.style.display = showAnalitik ? 'block' : 'none';
+    }
+  }
+
+  const elAbsensi = document.getElementById('nr-absensi');
+  if (elAbsensi) {
+    elAbsensi.style.display = showAbsensi ? 'flex' : 'none';
+    const lblAbsensi = elAbsensi.parentElement.querySelector('.nav-lbl');
+    if (lblAbsensi) {
+      lblAbsensi.style.display = showAbsensi ? 'block' : 'none';
+    }
+    elAbsensi.parentElement.style.display = showAbsensi ? 'block' : 'none';
   }
 }
 
