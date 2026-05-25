@@ -1059,8 +1059,10 @@ body.dark .kpi-card-exec:hover{
   <button class="ham-btn" onclick="toggleSidebar()" aria-label="Menu">
     <span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span>
   </button>
-  <div id="logo">
-    <i data-lucide="building-2" style="color:var(--gold); width:20px; height:20px; stroke-width:2.5px; flex-shrink:0;"></i>
+  <div id="logo" style="display:flex; align-items:center; gap:10px;">
+    <div style="background:#ffffff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; padding:2px; flex-shrink:0; box-shadow:0 1px 4px rgba(0,0,0,0.08); border:1px solid var(--border-subtle)">
+      <img id="logo-img" src="logo.jpg" style="width:100%; height:100%; object-fit:contain; border-radius:50%;" alt="Logo BUM Desa">
+    </div>
     <div><div id="logo-name" style="font-weight:700;">BUM Desa Gemah Ripah</div><div id="logo-sub" style="font-size:9px;letter-spacing:1px;font-weight:600;color:var(--text3);">OPERATING SYSTEM</div></div>
   </div>
   
@@ -1082,9 +1084,14 @@ body.dark .kpi-card-exec:hover{
 <!-- SIDEBAR OVERLAY -->
 <div id="overlay" onclick="closeSidebar()"></div>
 <div id="sidebar">
-  <div id="sb-header">
-    <div id="sb-logo">BUM Desa Gemah Ripah</div>
-    <div id="sb-sub">Operating System (OS)</div>
+  <div id="sb-header" style="display:flex; align-items:center; gap:12px; padding:16px 18px 12px; border-bottom:1px solid rgba(255,255,255,0.06)">
+    <div style="background:#ffffff; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; padding:2px; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+      <img id="sb-logo-img" src="logo.jpg" style="width:100%; height:100%; object-fit:contain; border-radius:50%;" alt="Logo BUM Desa">
+    </div>
+    <div>
+      <div id="sb-logo" style="font-weight:800; font-size:13px; color:#FFFFFF; letter-spacing:-0.3px; line-height:1.2;">BUM Desa Gemah Ripah</div>
+      <div id="sb-sub" style="font-size:8px; color:rgba(255,255,255,0.35); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; font-weight:700">Operating System (OS)</div>
+    </div>
   </div>
   <div id="sb-session"></div>
 
@@ -5771,12 +5778,87 @@ function render(){
 }
 
 // ═══════════════════════════════════════════════
+// LOGO TRANSPARENCY HELPER
+// ═══════════════════════════════════════════════
+function makeLogoTransparent(imgId) {
+  const img = document.getElementById(imgId);
+  if (!img) return;
+  const tempImg = new Image();
+  tempImg.src = img.src;
+  tempImg.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const w = tempImg.naturalWidth;
+      const h = tempImg.naturalHeight;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0);
+      
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      
+      const visited = new Uint8Array(w * h);
+      const queue = [];
+      
+      function push(x, y) {
+        if (x < 0 || x >= w || y < 0 || y >= h) return;
+        const idx = y * w + x;
+        if (visited[idx]) return;
+        
+        const pixelIdx = idx * 4;
+        const r = data[pixelIdx];
+        const g = data[pixelIdx+1];
+        const b = data[pixelIdx+2];
+        
+        if (r > 230 && g > 230 && b > 230) {
+          visited[idx] = 1;
+          queue.push(idx);
+        }
+      }
+      
+      for (let x = 0; x < w; x++) {
+        push(x, 0);
+        push(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        push(0, y);
+        push(w - 1, y);
+      }
+      
+      let head = 0;
+      while (head < queue.length) {
+        const idx = queue[head++];
+        const x = idx % w;
+        const y = Math.floor(idx / w);
+        
+        const pixelIdx = idx * 4;
+        data[pixelIdx+3] = 0;
+        
+        push(x + 1, y);
+        push(x - 1, y);
+        push(x, y + 1);
+        push(x, y - 1);
+      }
+      
+      ctx.putImageData(imgData, 0, 0);
+      img.src = canvas.toDataURL('image/png');
+    } catch (err) {
+      console.warn("Dynamic logo transparency skipped (CORS/file://):", err);
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 window.addEventListener('load', async ()=>{
   LS.load();
   applyTheme();
   render(); // Render UI immediately so screen is NEVER blank
+  
+  makeLogoTransparent('sb-logo-img');
+  makeLogoTransparent('logo-img');
 
   initFirebase();
   
