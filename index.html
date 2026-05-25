@@ -1138,6 +1138,13 @@ body.dark .kpi-card-exec:hover{
     </div>
   </div>
 
+  <div class="nav-section" id="ns-absensi">
+    <div class="nav-lbl">SDM & Kehadiran</div>
+    <div class="nav-row" id="nr-absensi" onclick="nav('absensi')">
+      <div class="nav-link"><i data-lucide="clipboard-check" class="nav-icon-lucide"></i>Data Absensi</div>
+    </div>
+  </div>
+
   <div class="nav-div" id="nav-div-data"></div>
   <div class="nav-section" id="ns-data">
     <div class="nav-lbl">Data</div>
@@ -3092,7 +3099,7 @@ function nav(tab,section=''){
   }
   S.tab=tab; S.section=section;
   // update active states
-  ['hub','svarna','log','harga','jual','beli','analitik'].forEach(t=>{
+  ['hub','svarna','log','harga','jual','beli','analitik','absensi'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active', t===tab&&!section);
   });
   ['jual-catat','jual-hist','beli-catat','beli-hist','analitik-overview','analitik-charts','analitik-fcr'].forEach(k=>{
@@ -5178,6 +5185,7 @@ function render(){
   }
   if(S.tab==='harga')    renderHarga();
   if(S.tab==='analitik') renderAnalitik();
+  if(S.tab==='absensi')  renderAbsensi();
   if(S.tab==='jual')     renderJual();
   if(S.tab==='beli')     renderBeli();
   
