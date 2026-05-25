@@ -750,12 +750,12 @@ body.dark .login-box{
 .login-sub{font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;font-weight:700}
 
 /* ═══ MULTI-UNIT HUB CARDS ═══ */
-.hub-unit-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.hub-unit-grid{display:grid;grid-template-columns:1fr;gap:10px}
 .hub-unit-card{
   background:var(--surface);
   border:1px solid var(--border-subtle);
-  border-radius:16px;
-  padding:18px;
+  border-radius:10px;
+  padding:10px 14px;
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -764,10 +764,10 @@ body.dark .login-box{
 }
 .hub-unit-card.active{border-color:var(--border);box-shadow:var(--shadow-sm)}
 .hub-unit-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.07);border-color:var(--border)}
-.hub-unit-info{display:flex;flex-direction:column;gap:5px}
-.hub-unit-name{font-weight:600;font-size:14px;color:var(--text1)}
-.hub-unit-desc{font-size:11px;color:var(--text3)}
-.hub-unit-status{font-size:9px;font-weight:700;padding:4px 12px;border-radius:30px;letter-spacing:1px}
+.hub-unit-info{display:flex;flex-direction:column;gap:3px}
+.hub-unit-name{font-weight:600;font-size:12px;color:var(--text1)}
+.hub-unit-desc{font-size:10px;color:var(--text3)}
+.hub-unit-status{font-size:8px;font-weight:700;padding:3px 8px;border-radius:30px;letter-spacing:0.8px}
 .hub-unit-status.active{background:var(--green-glow);color:var(--green);border:1px solid rgba(16,185,129,0.15)}
 .hub-unit-status.wacana{background:var(--surface-hover);color:var(--text3);border:1px solid var(--border-subtle)}
 
@@ -932,11 +932,11 @@ body.role-operator .breadcrumbs {
 .hub-subtabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   background: var(--surface-hover);
   border: 1px solid var(--border-subtle);
-  padding: 4px;
-  border-radius: 12px;
+  padding: 3px;
+  border-radius: 10px;
   overflow-x: auto;
 }
 body.dark .hub-subtabs{background:var(--inp)}
@@ -947,16 +947,16 @@ body.dark .hub-subtabs{background:var(--inp)}
   background: transparent;
   color: var(--text3);
   font-weight: 600;
-  font-size: 12px;
-  padding: 10px 16px;
-  border-radius: 9px;
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: 8px;
   cursor: pointer;
   font-family: var(--font-sans);
   transition: all 0.25s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 .subtab-btn:hover {
   color: var(--text1);
@@ -973,8 +973,8 @@ body.dark .hub-subtabs{background:var(--inp)}
 .kpi-grid-exec {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 @media (min-width: 600px) {
   .kpi-grid-exec {
@@ -990,13 +990,13 @@ body.dark .hub-subtabs{background:var(--inp)}
   background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-left: 3px solid var(--gold);
-  border-radius: 14px;
-  padding: 18px;
+  border-radius: 10px;
+  padding: 12px 14px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 105px;
+  min-height: 90px;
   transition: all 0.25s ease;
 }
 .kpi-card-exec:hover{
@@ -1012,26 +1012,87 @@ body.dark .kpi-card-exec:hover{
 .kpi-card-exec.amber { border-left-color: var(--amber); }
 
 .kpi-card-title {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   color: var(--text3);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 .kpi-card-value {
   font-family:'Outfit',var(--font-sans);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text1);
   line-height: 1.1;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
 }
 .kpi-card-sub {
-  font-size: 11px;
+  font-size: 9.5px;
   color: var(--text2);
-  margin-top: 8px;
+  margin-top: 4px;
   font-weight: 500;
+}
+
+/* ═══ HUB SPECIFIC COMPACT CONTAINER ═══ */
+.hub-card {
+  padding: 12px 14px !important;
+}
+@media (min-width: 900px) {
+  .hub-card {
+    padding: 12px 16px !important;
+  }
+}
+.hub-card .ct {
+  margin-bottom: 10px;
+}
+.hub-card .cl {
+  font-size: 10px;
+  letter-spacing: 0.8px;
+}
+.hub-card .cb {
+  height: 14px;
+}
+.hub-card .ig {
+  gap: 8px;
+}
+.hub-card .ii {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.hub-card .ik {
+  font-size: 8px;
+  letter-spacing: 0.8px;
+}
+.hub-card .iv {
+  font-size: 12px;
+}
+.hub-card .field {
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.hub-card .field label {
+  font-size: 11px;
+}
+.hub-card .inp {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.hub-card table th {
+  padding: 8px 10px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.hub-card table td {
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.hub-card table {
+  font-size: 11px;
+}
+.hub-card .td-d {
+  font-size: 11px;
 }
 .badge {
   display: inline-flex;
@@ -1868,13 +1929,13 @@ function renderHub() {
 
   // Render main wrappers
   let contentHtml = `
-    <div class="card cp fi" style="background:${S.dark?'rgba(15,22,32,0.7)':'rgba(255,255,255,0.85)'}; border:1px solid var(--border)">
+    <div class="card fi" style="padding: 10px 14px; background:${S.dark?'rgba(15,22,32,0.7)':'rgba(255,255,255,0.85)'}; border:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
-          <h2 style="font-family:'Outfit',var(--font-sans);font-size:22px;color:var(--gold);font-weight:800;letter-spacing:-0.5px;display:flex;align-items:center;gap:10px;"><i data-lucide="building-2" style="width:24px;height:24px;color:var(--gold);"></i> BUM Desa Gemah Ripah</h2>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600">Operating System — Pusat Konsolidasi & GCG</div>
+          <h2 style="font-family:'Outfit',var(--font-sans);font-size:18px;color:var(--gold);font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;margin:0;"><i data-lucide="building-2" style="width:20px;height:20px;color:var(--gold);"></i> BUM Desa Gemah Ripah</h2>
+          <div style="font-size:10px;color:var(--text2);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;font-weight:600">Operating System — Pusat Konsolidasi & GCG</div>
         </div>
-        <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">Perdes No. 4/2025 · Tuban</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">Perdes No. 4/2025 · Tuban</div>
       </div>
     </div>
 
@@ -1957,8 +2018,8 @@ function renderHub() {
 
       <!-- ALERTS AND SYSTEM HEALTH -->
       ${alerts.length > 0 ? `
-        <div class="card cp fi" style="border-left: 4px solid var(--amber)">
-          <div class="ct" style="margin-bottom:12px"><div class="cb a"></div><span class="cl">⚠️ Alert Center (Peringatan Sistem)</span></div>
+        <div class="card hub-card fi" style="border-left: 4px solid var(--amber)">
+          <div class="ct" style="margin-bottom:8px"><div class="cb a"></div><span class="cl">⚠️ Alert Center (Peringatan Sistem)</span></div>
           <div class="alert-center">
             ${alerts.map(a => `
               <div class="alert-item ${a.type}">
@@ -1972,7 +2033,7 @@ function renderHub() {
           </div>
         </div>
       ` : `
-        <div class="card cp fi" style="border-left: 4px solid var(--green); padding: 12px 18px;">
+        <div class="card hub-card fi" style="border-left: 4px solid var(--green); padding: 10px 14px !important;">
           <div style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--green)">
             <span>✓</span> Semua indikator unit operasional dalam keadaan aman & normal.
           </div>
@@ -1981,17 +2042,17 @@ function renderHub() {
 
       <!-- HPP vs ACUAN CHART -->
       ${trendPtsHpp.length >= 2 ? `
-        <div class="card cp fi" style="margin-top:12px">
-          <div class="ct" style="margin-bottom:10px"><div class="cb a"></div><span class="cl">📈 Analisis Tren HPP vs Harga Acuan Pasar (30 Hari Terakhir)</span></div>
-          <div style="display:flex; gap:16px; font-size:11px; margin-bottom:12px; font-weight:600">
-            <div style="display:flex; align-items:center; gap:6px"><span style="display:inline-block; width:12px; height:3px; background:#EF4444"></span> HPP Produksi (Rp/kg)</div>
-            <div style="display:flex; align-items:center; gap:6px"><span style="display:inline-block; width:12px; height:3px; background:#10B981"></span> Harga Acuan Pasar (Rp/kg)</div>
+        <div class="card hub-card fi" style="margin-top:10px">
+          <div class="ct" style="margin-bottom:8px"><div class="cb a"></div><span class="cl">📈 Analisis Tren HPP vs Harga Acuan Pasar (30 Hari Terakhir)</span></div>
+          <div style="display:flex; gap:14px; font-size:9.5px; margin-bottom:10px; font-weight:600">
+            <div style="display:flex; align-items:center; gap:6px"><span style="display:inline-block; width:10px; height:2px; background:#EF4444"></span> HPP Produksi (Rp/kg)</div>
+            <div style="display:flex; align-items:center; gap:6px"><span style="display:inline-block; width:10px; height:2px; background:#10B981"></span> Harga Acuan Pasar (Rp/kg)</div>
           </div>
           <div>
             ${svgMultiLine([
               { label: 'HPP Produksi', color: '#EF4444', pts: trendPtsHpp },
               { label: 'Harga Acuan', color: '#10B981', pts: trendPtsAcuan }
-            ], { h: 135, unit: '', minY: 15000 })}
+            ], { h: 115, unit: '', minY: 15000 })}
           </div>
         </div>
       ` : ''}
@@ -2002,7 +2063,7 @@ function renderHub() {
     // PANEL 2: KONSOLIDASI FINANSIAL
     // ═══════════════════════════════════════════════
     contentHtml += `
-      <div class="card cp fi">
+      <div class="card hub-card fi">
         <div class="ct"><div class="cb g"></div><span class="cl">Unit Usaha BUM Desa (AD Pasal 3)</span></div>
         <div class="hub-unit-grid">
           <div class="hub-unit-card active">
@@ -2043,16 +2104,16 @@ function renderHub() {
         </div>
       </div>
 
-      <div class="card cp fi">
+      <div class="card hub-card fi">
         <div class="ct"><div class="cb a"></div><span class="cl">Konsolidasi Finansial Laba/Rugi</span></div>
         
-        <div class="hub-unit-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
+        <div class="hub-unit-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px;">
           <!-- SVARNA FARM -->
-          <div style="background:var(--surface-hover); padding:14px; border:1px solid var(--border); border-radius:12px;">
-            <h4 style="margin:0 0 10px 0; color:var(--text1); font-size:13px; display:flex; align-items:center; gap:6px;">
+          <div style="background:var(--surface-hover); padding:10px 12px; border:1px solid var(--border); border-radius:10px;">
+            <h4 style="margin:0 0 8px 0; color:var(--text1); font-size:12px; display:flex; align-items:center; gap:6px;">
               <span>🥚</span> Svarna Farm Unit
             </h4>
-            <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:10px;">
               <div class="row-sb">
                 <span style="color:var(--text2)">Pendapatan (Sales)</span>
                 <span style="font-weight:600; color:var(--green)">${fRp(revSvarna)}</span>
@@ -2064,17 +2125,17 @@ function renderHub() {
               <div style="height:1px; background:var(--border); margin:4px 0"></div>
               <div class="row-sb">
                 <span style="color:var(--text1); font-weight:600">Laba Unit</span>
-                <span style="font-family:'Playfair Display',serif; font-weight:700; color:${netProfitSvarna>=0?'var(--green)':'var(--red)'}">${fRp(netProfitSvarna)}</span>
+                <span style="font-family:'Outfit',var(--font-sans); font-weight:700; font-size:12px; color:${netProfitSvarna>=0?'var(--green)':'var(--red)'}">${fRp(netProfitSvarna)}</span>
               </div>
             </div>
           </div>
           
           <!-- BUM DESA INDUK -->
-          <div style="background:var(--surface-hover); padding:14px; border:1px solid var(--border); border-radius:12px;">
-            <h4 style="margin:0 0 10px 0; color:var(--text1); font-size:13px; display:flex; align-items:center; gap:6px;">
+          <div style="background:var(--surface-hover); padding:10px 12px; border:1px solid var(--border); border-radius:10px;">
+            <h4 style="margin:0 0 8px 0; color:var(--text1); font-size:12px; display:flex; align-items:center; gap:6px;">
               <span>🏛️</span> BUM Desa Induk
             </h4>
-            <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:10px;">
               <div class="row-sb">
                 <span style="color:var(--text2)">Pengeluaran OPEX</span>
                 <span style="font-weight:600; color:var(--red)">${fRp(opexInduk)}</span>
@@ -2086,25 +2147,25 @@ function renderHub() {
               <div style="height:1px; background:var(--border); margin:4px 0"></div>
               <div class="row-sb">
                 <span style="color:var(--text1); font-weight:600">Laba Unit</span>
-                <span style="font-family:'Playfair Display',serif; font-weight:700; color:${netProfitInduk>=0?'var(--green)':'var(--red)'}">${fRp(netProfitInduk)}</span>
+                <span style="font-family:'Outfit',var(--font-sans); font-weight:700; font-size:12px; color:${netProfitInduk>=0?'var(--green)':'var(--red)'}">${fRp(netProfitInduk)}</span>
               </div>
             </div>
           </div>
         </div>
         
-        <div class="row-sb" style="background:var(--surface-active); padding:12px 16px; border-radius:10px;">
+        <div class="row-sb" style="background:var(--surface-active); padding:10px 14px; border-radius:8px;">
           <div style="display:flex; flex-direction:column;">
-            <span style="font-size:12px; font-weight:600; color:var(--text1)">Laba Bersih Konsolidasian</span>
-            <span style="font-size:10px; color:var(--text3)">*Svarna Farm Laba - Induk OPEX (CAPEX dikapitalisasi)</span>
+            <span style="font-size:11px; font-weight:600; color:var(--text1)">Laba Bersih Konsolidasian</span>
+            <span style="font-size:9px; color:var(--text3)">*Svarna Farm Laba - Induk OPEX (CAPEX dikapitalisasi)</span>
           </div>
-          <span style="font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:${consolidatedLaba>=0?'var(--green)':'var(--red)'}">${fRp(consolidatedLaba)}</span>
+          <span style="font-family:'Outfit',var(--font-sans); font-size:16px; font-weight:700; color:${consolidatedLaba>=0?'var(--green)':'var(--red)'}">${fRp(consolidatedLaba)}</span>
         </div>
       </div>
 
-      <div class="card cp fi">
+      <div class="card hub-card fi">
         <div class="ct"><div class="cb" style="background:var(--gold)"></div><span class="cl">Bagi Hasil Usaha (Pasal 36 AD/ART)</span></div>
         ${consolidatedLaba > 0 ? `
-          <div style="margin-bottom:16px">
+          <div style="margin-bottom:10px">
             ${svgDonut([
               { v: pades, color: '#10B981', label: 'PADes (30%)', sub: fRp(pades) },
               { v: labaDitahan, color: '#D4A832', label: 'Laba Ditahan (40%)', sub: fRp(labaDitahan) },
@@ -2113,7 +2174,7 @@ function renderHub() {
             ], consolidatedLaba, fRp(consolidatedLaba), 'laba bersih')}
           </div>
         ` : `
-          <div class="alr alr-i" style="text-align:center;padding:16px;margin-bottom:12px">
+          <div class="alr alr-i" style="text-align:center;padding:12px;margin-bottom:10px">
             Laba bersih konsolidasian berjalan belum positif (${fRp(consolidatedLaba)}). Alokasi bagi hasil otomatis tampil jika bernilai positif.
           </div>
         `}
@@ -2137,26 +2198,26 @@ function renderHub() {
     const uniquePersediaanItems = [...new Set(monthPurchases.filter(p => (p.recordUnit === 'svarna' || !p.recordUnit) && p.cat === 'pakan').map(p => p.item).filter(Boolean))].sort();
 
     contentHtml += `
-      <div class="card cp fi">
+      <div class="card hub-card fi">
         <div class="ct"><div class="cb" style="background:var(--green)"></div><span class="cl">📊 Modul Ekspor Jurnal (Aplikasi Akuntansi Excel)</span></div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:16px">
+        <div style="font-size:10.5px;color:var(--text2);line-height:1.4;margin-bottom:12px">
           Ekspor jurnal transaksi double-entry bulanan ke clipboard (TSV) untuk langsung di-paste ke sel <b>B8</b> sheet <b>Jurnal</b> file <code>Aplikasi Akuntansi BUM Desa Gemah Ripah.xlsm</code>.
         </div>
         
-        <div class="field" style="margin-bottom:16px">
-          <label for="export_month_select">Pilih Bulan Keuangan</label>
-          <select id="export_month_select" class="inp" onchange="changeExportMonth(this.value)">
+        <div class="field" style="margin-bottom:12px">
+          <label for="export_month_select" style="font-size: 11px; margin-bottom: 2px;">Pilih Bulan Keuangan</label>
+          <select id="export_month_select" class="inp" style="font-size: 11px; padding: 6px 10px; height: auto;" onchange="changeExportMonth(this.value)">
             ${months.map(m => `<option value="${m}" ${selectedExportMonth===m?'selected':''}>${m}</option>`).join('')}
           </select>
         </div>
 
-        <details style="margin-bottom:16px; border:1px solid var(--border); border-radius:10px; padding:10px; background:var(--surface-hover)">
-          <summary style="font-size:12px; font-weight:600; cursor:pointer; color:var(--text1); outline:none; user-select:none;">
+        <details style="margin-bottom:12px; border:1px solid var(--border); border-radius:8px; padding:8px 10px; background:var(--surface-hover)">
+          <summary style="font-size:11px; font-weight:600; cursor:pointer; color:var(--text1); outline:none; user-select:none;">
             ⚙️ Pengaturan Pemetaan Akun COA & Sub-ledger
           </summary>
-          <div style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
-            <div style="border-bottom:1px solid var(--border); padding-bottom:12px">
-              <h5 style="margin:0 0 8px 0; font-size:11px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Akun Default</h5>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+            <div style="border-bottom:1px solid var(--border); padding-bottom:10px">
+              <h5 style="margin:0 0 6px 0; font-size:9.5px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Akun Default</h5>
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                 <div class="field" style="margin:0">
                   <label style="font-size:10px">Piutang Usaha</label>
@@ -2190,9 +2251,9 @@ function renderHub() {
             </div>
 
             ${uniqueBuyers.length > 0 ? `
-              <div style="border-bottom:1px solid var(--border); padding-bottom:12px">
-                <h5 style="margin:0 0 8px 0; font-size:11px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Buku Pembantu Piutang</h5>
-                <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="border-bottom:1px solid var(--border); padding-bottom:10px">
+                <h5 style="margin:0 0 6px 0; font-size:9.5px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Buku Pembantu Piutang</h5>
+                <div style="display:flex; flex-direction:column; gap:6px;">
                   ${uniqueBuyers.map(b => `
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
                       <span style="font-size:11px; color:var(--text2); font-weight:500">${b}</span>
@@ -2208,8 +2269,8 @@ function renderHub() {
 
             ${uniquePersediaanItems.length > 0 ? `
               <div>
-                <h5 style="margin:0 0 8px 0; font-size:11px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Buku Pembantu Persediaan</h5>
-                <div style="display:flex; flex-direction:column; gap:8px;">
+                <h5 style="margin:0 0 6px 0; font-size:9.5px; color:var(--text1); text-transform:uppercase; letter-spacing:0.5px">Pemetaan Buku Pembantu Persediaan</h5>
+                <div style="display:flex; flex-direction:column; gap:6px;">
                   ${uniquePersediaanItems.map(item => `
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
                       <span style="font-size:11px; color:var(--text2); font-weight:500">${item}</span>
@@ -2225,15 +2286,15 @@ function renderHub() {
           </div>
         </details>
 
-        <div style="margin-bottom:16px">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
-            <span style="font-size:11px; font-weight:600; color:var(--text2)">Pratinjau Jurnal (${doubleEntries.length} Baris)</span>
-            <button class="btn btn-primary btn-sm" onclick="copyJournalTsv()" style="font-size:11px; padding:6px 12px">
+        <div style="margin-bottom:12px">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+            <span style="font-size:10.5px; font-weight:600; color:var(--text2)">Pratinjau Jurnal (${doubleEntries.length} Baris)</span>
+            <button class="btn btn-primary btn-sm" onclick="copyJournalTsv()" style="font-size:10px; padding:4px 8px">
               📋 Salin Jurnal (TSV)
             </button>
           </div>
           
-          <div class="tbl-w" style="max-height:280px; overflow-y:auto;">
+          <div class="tbl-w" style="max-height:240px; overflow-y:auto;">
             <table style="font-size:10px; width:100%">
               <thead style="position:sticky; top:0; background:var(--surface-hover); z-index:10">
                 <tr>
@@ -2286,24 +2347,24 @@ function renderHub() {
     const isDirektur = S.currentUser && S.currentUser.role === 'direktur';
 
     contentHtml += `
-      <div class="card cp fi">
+      <div class="card hub-card fi">
         <div class="ct"><div class="cb r"></div><span class="cl">Tutup Buku (Lock Periode Keuangan)</span></div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.4">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.4">
           Periode keuangan yang dikunci tidak dapat ditambah, diedit, atau dihapus transaksinya untuk menjaga validitas audit keuangan.
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;flex-direction:column;gap:6px">
           ${months.map(m => {
             const locked = S.lockedPeriods && S.lockedPeriods.includes(m);
             return `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-hover);border:1px solid var(--border);border-radius:10px">
-                <div style="display:flex;align-items:center;gap:8px">
-                  <span style="font-weight:700;font-size:13px;color:var(--text1)">${m}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surface-hover);border:1px solid var(--border);border-radius:8px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-weight:700;font-size:11.5px;color:var(--text1)">${m}</span>
                   <span class="${locked?'lock-badge':'unlock-badge'}">
                     ${locked?'🔒 Terkunci':'🔓 Terbuka'}
                   </span>
                 </div>
                 ${isDirektur ? `
-                  <button class="cp-btn ${locked?'':'ok'}" onclick="togglePeriodLock('${m}')" style="font-size:10px">
+                  <button class="cp-btn ${locked?'':'ok'}" onclick="togglePeriodLock('${m}')" style="font-size:9px; padding: 4px 8px;">
                     ${locked?'🔓 Buka':'🔒 Tutup Buku'}
                   </button>
                 ` : `
@@ -2315,9 +2376,9 @@ function renderHub() {
         </div>
       </div>
 
-      <div class="card fi style="overflow:hidden;padding:0">
-        <div style="padding:13px 16px;border-bottom:1px solid var(--border)" class="ct"><div class="cb" style="background:var(--text2)"></div><span class="cl">Jejak Audit Sistem (Audit Trail)</span></div>
-        <div class="tbl-w">
+      <div class="card hub-card fi" style="overflow:hidden; padding:0">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border)" class="ct"><div class="cb" style="background:var(--text2)"></div><span class="cl">Jejak Audit Sistem (Audit Trail)</span></div>
+        <div class="tbl-w" style="max-height:220px; overflow-y:auto;">
           <table>
             <thead>
               <tr>
@@ -3532,7 +3593,7 @@ function svgLine(pts, opts={}){
 }
 
 function svgDonut(segments,total,centerLabel,centerSub){
-  const r=48,cx=60,cy=60,stroke=14;
+  const r=32,cx=45,cy=45,stroke=8;
   let offset=0;
   const circ=2*Math.PI*r;
   let arcs='';
@@ -3542,15 +3603,15 @@ function svgDonut(segments,total,centerLabel,centerSub){
     arcs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${-offset*circ}" transform="rotate(-90 ${cx} ${cy})" opacity="0.9"/>`;
     offset+=pct;
   });
-  return `<svg viewBox="0 0 180 120" style="width:180px;height:120px;display:block;margin:0 auto">
+  return `<svg viewBox="0 0 200 90" style="width:200px;height:90px;display:block;margin:0 auto">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface3)" stroke-width="${stroke}"/>
     ${arcs}
-    <text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="16" font-weight="700" fill="var(--text1)" font-family="Playfair Display,serif">${centerLabel}</text>
-    <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="DM Sans">${centerSub}</text>
+    <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="11" font-weight="800" fill="var(--text1)" font-family="'Outfit', sans-serif">${centerLabel}</text>
+    <text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.5" fill="var(--text3)" font-family="DM Sans">${centerSub}</text>
     ${segments.map((s,i)=>`
-      <rect x="128" y="${10+i*22}" width="10" height="10" rx="3" fill="${s.color}"/>
-      <text x="142" y="${19+i*22}" font-size="10" fill="var(--text2)" font-family="DM Sans">${s.label}</text>
-      <text x="142" y="${30+i*22}" font-size="9" fill="var(--text3)" font-family="DM Sans">${s.sub||''}</text>
+      <rect x="105" y="${6+i*20}" width="8" height="8" rx="2" fill="${s.color}"/>
+      <text x="117" y="${14+i*20}" font-size="8.5" font-weight="600" fill="var(--text2)" font-family="DM Sans">${s.label}</text>
+      <text x="117" y="${23+i*20}" font-size="7.5" fill="var(--text3)" font-family="DM Sans">${s.sub||''}</text>
     `).join('')}
   </svg>`;
 }
