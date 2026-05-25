@@ -1497,7 +1497,7 @@ function login() {
     } else {
       S.tab = 'hub';
     }
-    navToggle(S.tab);
+    nav(S.tab);
   } else {
     alert('Passcode salah!');
   }
@@ -1517,6 +1517,25 @@ function logout() {
   render();
 }
 
+function toggleLoginPassword() {
+  const passwordInput = document.getElementById('login-passcode');
+  const toggleBtn = document.getElementById('login-passcode-toggle-btn');
+  if (passwordInput && toggleBtn) {
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      passwordInput.style.letterSpacing = 'normal';
+      toggleBtn.innerHTML = '<i data-lucide="eye-off" style="width:20px;height:20px;stroke-width:2px;color:var(--text3);"></i>';
+    } else {
+      passwordInput.type = 'password';
+      passwordInput.style.letterSpacing = '4px';
+      toggleBtn.innerHTML = '<i data-lucide="eye" style="width:20px;height:20px;stroke-width:2px;color:var(--text3);"></i>';
+    }
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  }
+}
+
 function renderLogin() {
   document.body.classList.add('logged-out');
   document.getElementById('content').innerHTML = `
@@ -1526,7 +1545,12 @@ function renderLogin() {
       <div class="login-sub">Sistem Informasi & Tata Kelola (GCG)</div>
       <div class="field" style="text-align:left;margin-top:20px">
         <label>Passcode Pengurus / Petugas</label>
-        <input type="password" id="login-passcode" class="inp inp-lg" placeholder="Masukkan passcode" style="text-align:center;letter-spacing:4px" onkeydown="if(event.key==='Enter')login()">
+        <div style="position:relative; display:flex; align-items:center;">
+          <input type="password" id="login-passcode" class="inp inp-lg" placeholder="Masukkan passcode" style="text-align:center;letter-spacing:4px;width:100%;padding-right:48px;" onkeydown="if(event.key==='Enter')login()">
+          <button type="button" onclick="toggleLoginPassword()" style="position:absolute; right:12px; background:none; border:none; color:var(--text3); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:6px; outline:none;" id="login-passcode-toggle-btn" title="Tampilkan Passcode">
+            <i data-lucide="eye" style="width:20px;height:20px;stroke-width:2px;color:var(--text3);"></i>
+          </button>
+        </div>
       </div>
       <div id="login-error" class="alr alr-w" style="display:none;margin-top:12px;margin-bottom:12px;text-align:center"></div>
       <button class="btn btn-g" onclick="login()" style="margin-top:10px">Masuk Aplikasi</button>
@@ -1536,6 +1560,9 @@ function renderLogin() {
       </div>
     </div>
   `;
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 function updateSidebarVisibility() {
