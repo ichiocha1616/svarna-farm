@@ -1202,6 +1202,7 @@ const S = {
   currentUser:null,
   auditLogs:[],
   lockedPeriods:[],
+  attendanceLogs:[],
   logEntries:[],    // {date,butir,kg,kgPakan?,ayamMati?}
   priceHistory:[],  // {date,acuan}
   salesEntries:[],  // {id,date,type,buyer,buyerPhone,kg,pricePerKg,discType,discVal,total,note,recordUnit,cashAccount,payDate,payCashAccount}
@@ -1445,6 +1446,7 @@ function writeAuditLog(action, details) {
   S.auditLogs.sort((a,b) => b.timestamp.localeCompare(a.timestamp));
   try {
     localStorage.setItem('sf-audit', JSON.stringify(S.auditLogs));
+      localStorage.setItem('sf-attendance', JSON.stringify(S.attendanceLogs));
   } catch(e) {}
   if (db) {
     db.collection('auditLogs').doc(log.id).set(log).catch(e => console.error("Cloud audit write failed:", e));
@@ -1470,11 +1472,7 @@ function saveConfig() {
 
 const ROLES = {
   'direktur123': { name: 'Sagaf Rahmi Sagita', role: 'direktur', title: 'Direktur Utama' },
-  'bendahara123': { name: 'Supriyono', role: 'bendahara', title: 'Bendahara' },
-  'manager123': { name: 'Budi Santoso', role: 'manager', title: 'Manajer Unit Svarna Farm' },
-  'kades123': { name: 'Wiji Santoso', role: 'penasihat', title: 'Penasihat / Kades' },
-  'pengawas123': { name: 'Subakir', role: 'pengawas', title: 'Ketua Pengawas' },
-  'kandang123': { name: 'Pekerja Kandang', role: 'operator', title: 'Operator Kandang' }
+  'kandang123': { name: 'Hendra', role: 'operator', title: 'Anak Kandang' }
 };
 
 function login() {
@@ -1489,118 +1487,21 @@ function login() {
     // Set default tab based on role
     if (user.role === 'operator') {
       S.tab = 'log';
-    } else if (user.role === 'manager') {
-      S.tab = 'svarna';
     } else {
       S.tab = 'hub';
     }
-    S.section = '';
-    updateSidebarVisibility();
-    render();
+    navToggle(S.tab);
   } else {
-    const errorEl = document.getElementById('login-error');
-    if (errorEl) {
-      errorEl.textContent = '⚠️ Passcode salah. Hubungi Direktur Utama BUM Desa.';
-      errorEl.style.display = 'block';
-    }
+    alert('Passcode salah!');
   }
 }
 
 function logout() {
-  if (S.currentUser) {
-    writeAuditLog('logout', `Pengguna ${S.currentUser.name} keluar dari sistem.`);
-  }
   S.currentUser = null;
-  S.tab = 'hub';
-  S.section = '';
-  S.opTemp = null;
-  document.body.className = document.body.className.split(' ').filter(c => !c.startsWith('role-')).join(' ');
   LS.save();
   document.body.classList.add('logged-out');
-  render();
-}
-
-function renderLogin() {
-  document.body.classList.add('logged-out');
-  document.getElementById('content').innerHTML = `
-    <div class="login-box fi">
-      <div class="login-logo">🏛️</div>
-      <div class="login-title">BUM Desa Gemah Ripah</div>
-      <div class="login-sub">Sistem Informasi & Tata Kelola (GCG)</div>
-      <div class="field" style="text-align:left;margin-top:20px">
-        <label>Passcode Pengurus / Petugas</label>
-        <input type="password" id="login-passcode" class="inp inp-lg" placeholder="Masukkan passcode" style="text-align:center;letter-spacing:4px" onkeydown="if(event.key==='Enter')login()">
-      </div>
-      <div id="login-error" class="alr alr-w" style="display:none;margin-top:12px;margin-bottom:12px;text-align:center"></div>
-      <button class="btn btn-g" onclick="login()" style="margin-top:10px">Masuk Aplikasi</button>
-      <div style="margin-top:24px;font-size:10px;color:var(--text3);line-height:1.4">
-        Unit Ketahanan Pangan: Svarna Farm<br>
-        Tuwiri Wetan, Tuban
-      </div>
-    </div>
-  `;
-}
-
-function updateSidebarVisibility() {
-  const role = S.currentUser ? S.currentUser.role : 'operator';
-  const showHub = role === 'direktur' || role === 'bendahara' || role === 'penasihat' || role === 'pengawas';
-  const showSvarna = role !== 'operator';
-  const showLog = role !== 'operator';
-  const showHarga = role === 'direktur' || role === 'bendahara' || role === 'manager' || role === 'penasihat' || role === 'pengawas';
-  const showJual = role === 'direktur' || role === 'bendahara' || role === 'penasihat' || role === 'pengawas';
-  const showBeli = role === 'direktur' || role === 'bendahara' || role === 'manager' || role === 'penasihat' || role === 'pengawas';
-  const showAnalitik = role !== 'operator';
-  const showData = role === 'direktur' || role === 'bendahara';
-
-  const elHub = document.getElementById('nr-hub');
-  if (elHub) elHub.style.display = showHub ? 'block' : 'none';
-  const lblHub = elHub?.previousElementSibling;
-  if (lblHub && lblHub.classList.contains('nav-lbl')) {
-    lblHub.style.display = showHub ? 'block' : 'none';
-  }
-
-  const elSvarna = document.getElementById('nr-svarna');
-  if (elSvarna) elSvarna.style.display = showSvarna ? 'block' : 'none';
-
-  const elLog = document.getElementById('nr-log');
-  if (elLog) elLog.style.display = showLog ? 'block' : 'none';
-
-  const elHarga = document.getElementById('nr-harga');
-  if (elHarga) elHarga.style.display = showHarga ? 'block' : 'none';
-
-  const elJual = document.getElementById('nr-jual');
-  const nsJual = document.getElementById('ns-jual');
-  if (elJual) elJual.style.display = showJual ? 'block' : 'none';
-  if (nsJual) nsJual.style.display = showJual ? 'block' : 'none';
-  const lblTrx = elJual?.previousElementSibling;
-  if (lblTrx && lblTrx.classList.contains('nav-lbl')) {
-    lblTrx.style.display = showJual ? 'block' : 'none';
-  }
-
-  const elBeli = document.getElementById('nr-beli');
-  const nsBeli = document.getElementById('ns-beli');
-  if (elBeli) elBeli.style.display = showBeli ? 'block' : 'none';
-  if (nsBeli) nsBeli.style.display = showBeli ? 'block' : 'none';
-
-  const elAnalitik = document.getElementById('nr-analitik');
-  const nsAnalitik = document.getElementById('ns-analitik');
-  if (elAnalitik) elAnalitik.style.display = showAnalitik ? 'block' : 'none';
-  if (nsAnalitik) nsAnalitik.style.display = showAnalitik ? 'block' : 'none';
-  const lblAnalitik = elAnalitik?.previousElementSibling;
-  if (lblAnalitik && lblAnalitik.classList.contains('nav-lbl')) {
-    lblAnalitik.style.display = showAnalitik ? 'block' : 'none';
-  }
-
-  const elData = document.getElementById('ns-data');
-  const divData = document.getElementById('nav-div-data');
-  if (elData) elData.style.display = showData ? 'block' : 'none';
-  if (divData) divData.style.display = showData ? 'block' : 'none';
-
   const sess = document.getElementById('sb-session');
-  if (sess && S.currentUser) {
-    sess.innerHTML = `Masuk sebagai:<br><b>${S.currentUser.name}</b><br><span style="color:var(--gold)">${S.currentUser.title}</span>`;
-    sess.classList.add('visible');
-  } else if (sess) {
+  if (sess) {
     sess.classList.remove('visible');
   }
 }
@@ -1697,7 +1598,7 @@ function switchHubTab(tabName) {
 }
 
 function renderHub() {
-  const isExecutive = S.currentUser && (S.currentUser.role === 'direktur' || S.currentUser.role === 'bendahara');
+  const isExecutive = S.currentUser && (S.currentUser.role === 'direktur');
   const sales = S.salesEntries.filter(e => !e.deleted);
   const purchases = S.purchaseEntries.filter(e => !e.deleted);
   
@@ -2821,14 +2722,15 @@ async function loadFromCloud(){
     }
 
     // 2. Fetch collections
-    const [logSnap, priceSnap, salesSnap, purchaseSnap, configSnap, auditSnap, opChecklistSnap] = await Promise.all([
+    const [logSnap, priceSnap, salesSnap, purchaseSnap, configSnap, auditSnap, opChecklistSnap, attendanceSnap] = await Promise.all([
       db.collection('logEntries').get(),
       db.collection('priceHistory').get(),
       db.collection('salesEntries').get(),
       db.collection('purchaseEntries').get(),
       db.collection('config').doc('mainConfig').get(),
       db.collection('auditLogs').get(),
-      db.collection('opChecklist').get()
+      db.collection('opChecklist').get(),
+      db.collection('attendanceLogs').get()
     ]);
 
     const cloudLogs = [];
@@ -2855,6 +2757,14 @@ async function loadFromCloud(){
     auditSnap.forEach(doc => cloudAudits.push(doc.data()));
     S.auditLogs = mergeBy(S.auditLogs || [], cloudAudits, e => e.id);
     S.auditLogs.sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+
+    
+    const cloudAttendance = [];
+    if (attendanceSnap) {
+      attendanceSnap.forEach(doc => cloudAttendance.push(doc.data()));
+      S.attendanceLogs = mergeBy(S.attendanceLogs || [], cloudAttendance, e => e.id);
+      S.attendanceLogs.sort((a,b) => b.date.localeCompare(a.date) || b.clockInTime.localeCompare(a.clockInTime));
+    }
 
     const cloudChecklist = {};
     if (opChecklistSnap) {
@@ -2991,6 +2901,7 @@ const LS={
       localStorage.setItem('sf-dark-v2', S.dark?'1':'0');
       localStorage.setItem('sf-user',  JSON.stringify(S.currentUser));
       localStorage.setItem('sf-audit', JSON.stringify(S.auditLogs));
+      localStorage.setItem('sf-attendance', JSON.stringify(S.attendanceLogs));
       localStorage.setItem('sf-locked', JSON.stringify(S.lockedPeriods));
       localStorage.setItem('sf-coa',    JSON.stringify(S.coaMappings));
       localStorage.setItem('sf-buyMap', JSON.stringify(S.buyerMappings));
@@ -3004,6 +2915,7 @@ const LS={
     try{S.salesEntries    =JSON.parse(localStorage.getItem('sf-sales')||'[]')}catch(_){}
     try{S.purchaseEntries =JSON.parse(localStorage.getItem('sf-beli') ||'[]')}catch(_){}
     try{S.auditLogs       =JSON.parse(localStorage.getItem('sf-audit')||'[]')}catch(_){}
+    try{S.attendanceLogs  =JSON.parse(localStorage.getItem('sf-attendance')||'[]')}catch(_){}
     try{S.lockedPeriods   =JSON.parse(localStorage.getItem('sf-locked')||'[]')}catch(_){}
     try{S.currentUser     =JSON.parse(localStorage.getItem('sf-user') ||'null')}catch(_){}
     try{const coa=JSON.parse(localStorage.getItem('sf-coa'));if(coa)S.coaMappings={...S.coaMappings,...coa};}catch(_){}
@@ -3584,8 +3496,8 @@ function renderLog(){
   const stokKg = Math.max(0, layakJualKg - terjualKg);
   const stokButir = Math.max(0, layakJualButir - terjualButir);
 
-  const isReadOnly = S.currentUser && (S.currentUser.role === 'penasihat' || S.currentUser.role === 'pengawas');
-  const canDelete = S.currentUser && (S.currentUser.role === 'direktur' || S.currentUser.role === 'bendahara');
+  const isReadOnly = S.currentUser && (false);
+  const canDelete = S.currentUser && (S.currentUser.role === 'direktur');
 
   document.getElementById('content').innerHTML=`
     ${isReadOnly ? `
@@ -3772,6 +3684,8 @@ function renderOperator() {
         <span style="font-weight: 700; color: var(--text-primary);">Pilih Tanggal Kerja:</span>
         <input type="date" id="op-date-input" class="inp" value="${S.opDate}" onchange="changeOpDate(this.value)" style="max-width: 200px; margin: 0; text-align: center; font-weight: 600;">
       </div>
+
+      ${renderAttendanceUI()}
 
       <div class="op-grid">
         
@@ -4179,8 +4093,8 @@ function renderSvarna() {
 // ═══════════════════════════════════════════════
 function renderHarga(){
   const H=S.priceHistory;
-  const isReadOnly = S.currentUser && (S.currentUser.role === 'penasihat' || S.currentUser.role === 'pengawas');
-  const canDelete = S.currentUser && (S.currentUser.role === 'direktur' || S.currentUser.role === 'bendahara');
+  const isReadOnly = S.currentUser && (false);
+  const canDelete = S.currentUser && (S.currentUser.role === 'direktur');
 
   document.getElementById('content').innerHTML=`
     ${isReadOnly ? `
@@ -4379,8 +4293,8 @@ function renderJual(){
   const effPrice=unitPrice?applyDisc(unitPrice,S.j_discType,disc):0;
   const total=kg*effPrice;
 
-  const isReadOnly = S.currentUser && (S.currentUser.role === 'penasihat' || S.currentUser.role === 'pengawas');
-  const canEditDelete = S.currentUser && (S.currentUser.role === 'direktur' || S.currentUser.role === 'bendahara');
+  const isReadOnly = S.currentUser && (false);
+  const canEditDelete = S.currentUser && (S.currentUser.role === 'direktur');
   const locked = isPeriodLocked(jd);
 
   let html = '';
@@ -4694,9 +4608,9 @@ function changeRecordUnit(unit) {
 
 function renderBeli(){
   const role = S.currentUser ? S.currentUser.role : 'operator';
-  const isReadOnly = role === 'penasihat' || role === 'pengawas';
+  const isReadOnly = false;
   const isOperator = role === 'operator';
-  const canDelete = role === 'direktur' || role === 'bendahara';
+  const canDelete = role === 'direktur';
 
   const E = S.purchaseEntries.filter(e => !e.deleted && (!isOperator || e.recordUnit !== 'induk')), td=today();
   const totalBeli=E.reduce((s,e)=>s+num(e.total),0);
@@ -4960,6 +4874,71 @@ function submitBeli(){
 // ═══════════════════════════════════════════════
 // MAIN RENDER
 // ═══════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
+// RENDER: DATA ABSENSI (DIREKTUR)
+// ═══════════════════════════════════════════════
+function renderAbsensi() {
+  let h = `
+    <div class="hub-header fade-in">
+      <div style="flex:1">
+        <h2 style="margin:0; font-size:24px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:12px;">
+          <span style="background:var(--gold); color:#fff; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:12px; font-size:20px;">📍</span>
+          Data Absensi Anak Kandang
+        </h2>
+        <p style="margin:4px 0 0 0; color:var(--text-secondary); font-size:14px;">Rekapitulasi kehadiran harian operator (Hendra)</p>
+      </div>
+    </div>
+  `;
+
+  if (!S.attendanceLogs || S.attendanceLogs.length === 0) {
+    h += `<div class="card fade-in" style="padding:40px; text-align:center; color:var(--text-secondary); margin-top:20px; border-radius:16px;">Belum ada data absensi.</div>`;
+  } else {
+    h += `
+      <div class="card fade-in" style="margin-top:20px; overflow-x:auto; border-radius:16px;">
+        <table class="tbl" style="width:100%; text-align:left; border-collapse:collapse;">
+          <thead style="background:var(--surface2); color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">
+            <tr>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Tanggal</th>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Status</th>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Jam Masuk</th>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Lokasi Masuk</th>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Jam Keluar</th>
+              <th style="padding:12px 16px; border-bottom:1px solid var(--border-subtle);">Lokasi Keluar</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    const sorted = [...S.attendanceLogs].sort((a,b) => b.date.localeCompare(a.date));
+    
+    for (const log of sorted) {
+      let inLocLink = log.clockInLoc ? `<a href="https://maps.google.com/?q=${log.clockInLoc}" target="_blank" style="color:var(--gold); text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;">🌍 Maps</a>` : '-';
+      let outLocLink = log.clockOutLoc ? `<a href="https://maps.google.com/?q=${log.clockOutLoc}" target="_blank" style="color:var(--gold); text-decoration:none; font-weight:600; display:flex; align-items:center; gap:4px;">🌍 Maps</a>` : '-';
+      
+      let statusColor = 'var(--text-primary)';
+      if(log.status.includes('Hadir')) statusColor = 'var(--green)';
+      else if(log.status.includes('Sakit')) statusColor = 'var(--red)';
+      else if(log.status.includes('Izin')) statusColor = 'var(--amber)';
+
+      h += `
+        <tr style="border-bottom:1px solid var(--border-subtle);">
+          <td style="padding:12px 16px; font-weight:600; color:var(--text-primary);">${fmtD(log.date)}</td>
+          <td style="padding:12px 16px; color:${statusColor}; font-weight:700;">${log.status}</td>
+          <td style="padding:12px 16px; color:var(--text-primary);">${log.clockInTime || '-'}</td>
+          <td style="padding:12px 16px;">${inLocLink}</td>
+          <td style="padding:12px 16px; color:var(--text-primary);">${log.clockOutTime || '-'}</td>
+          <td style="padding:12px 16px;">${outLocLink}</td>
+        </tr>
+      `;
+    }
+    
+    h += `</tbody></table></div>`;
+  }
+
+  document.getElementById('content').innerHTML = h;
+}
+
 function render(){
   if (!S.currentUser) {
     renderLogin();
