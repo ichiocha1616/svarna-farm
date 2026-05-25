@@ -3636,6 +3636,124 @@ function submitLog(){
 // ═══════════════════════════════════════════════
 // RENDER: OPERATOR WORKSPACE
 // ═══════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
+// ABSENSI LOGIC
+// ═══════════════════════════════════════════════
+
+function getAttendanceState() {
+  const d = new Date();
+  const dateStr = today();
+  const h = d.getHours();
+  let log = (S.attendanceLogs || []).find(e => e.date === dateStr);
+  return { dateStr, h, log };
+}
+
+function renderAttendanceUI() {
+  const state = getAttendanceState();
+  const dateStr = state.dateStr;
+  const h = state.h;
+  const log = state.log;
+  
+  if (dateStr !== S.opDate) return ''; // Only show attendance for today
+  
+  let html = `<div class="card cp fade-in" style="margin-bottom: 16px; padding: 16px; background: var(--surface2); border-left: 4px solid var(--gold);">`;
+  html += `<h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: var(--text-primary);">📍 Absensi Hari Ini (${fmtD(dateStr)})</h3>`;
+  
+  if (!log) {
+    if (h >= 6 && h < 8) { // 06:00 to 07:59 leeway
+      html += `
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" onclick="clockIn('Hadir')" style="flex:1; background:var(--green); color:#fff; border:none; padding:10px; font-weight:600; border-radius:8px;">✅ Hadir (Masuk)</button>
+          <button class="btn" onclick="clockIn('Sakit')" style="flex:1; background:var(--red); color:#fff; border:none; padding:10px; font-weight:600; border-radius:8px;">🤒 Sakit</button>
+          <button class="btn" onclick="clockIn('Izin')" style="flex:1; background:var(--amber); color:#fff; border:none; padding:10px; font-weight:600; border-radius:8px;">📝 Izin</button>
+        </div>
+      `;
+    } else if (h < 6) {
+      html += `<div style="color:var(--text-secondary); font-size:12px;">Absensi dibuka pukul 06:00.</div>`;
+    } else {
+      html += `<div style="color:var(--red); font-size:12px; font-weight:600;">Waktu absen normal (06:00-07:00) telah terlewat.</div>`;
+      html += `<button class="btn" onclick="clockIn('Hadir (Terlambat)')" style="margin-top:10px; width:100%; background:var(--amber); color:#fff; border:none; padding:10px; font-weight:600; border-radius:8px;">⚠️ Clock In Terlambat</button>`;
+    }
+  } else {
+    html += `<div style="font-size:13px; font-weight:600; margin-bottom:8px; color:var(--text-primary);">Status: <span style="color:var(--gold);">${log.status}</span></div>`;
+    html += `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Waktu Masuk: ${log.clockInTime || '-'} <br>Lokasi: ${log.clockInLoc || '-'}</div>`;
+    
+    if (log.status.includes('Hadir') && !log.clockOutTime) {
+      if (h >= 17) {
+        html += `<button class="btn" onclick="clockOut()" style="width:100%; background:var(--red); color:#fff; border:none; padding:10px; font-weight:600; border-radius:8px;">🚪 Clock Out (Pulang)</button>`;
+      } else {
+        html += `<div style="color:var(--text-secondary); font-size:12px; padding:8px; background:var(--surface1); border-radius:6px; border:1px dashed var(--border-subtle);">⏳ Tombol Clock Out aktif pada pukul 17:00.</div>`;
+      }
+    } else if (log.clockOutTime) {
+      html += `<div style="font-size:12px; color:var(--text-secondary);">Waktu Keluar: ${log.clockOutTime} <br>Lokasi: ${log.clockOutLoc || '-'}</div>`;
+      html += `<div style="color:var(--green); font-size:12px; font-weight:600; margin-top:8px;">✅ Absensi hari ini selesai. Terima kasih!</div>`;
+    }
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+function clockIn(status) {
+  if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  alert("Mohon izinkan akses lokasi untuk absensi.");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const loc = pos.coords.latitude + ',' + pos.coords.longitude;
+      const d = new Date();
+      const id = 'att_' + Date.now();
+      const newLog = {
+        id: id,
+        date: today(),
+        status: status,
+        clockInTime: d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}),
+        clockInLoc: loc,
+        clockOutTime: null,
+        clockOutLoc: null,
+        note: ''
+      };
+      if (!S.attendanceLogs) S.attendanceLogs = [];
+      S.attendanceLogs.push(newLog);
+      LS.save();
+      if(db) db.collection('attendanceLogs').doc(id).set(newLog).catch(e=>console.log(e));
+      if (S.tab === 'log') renderOperator();
+    },
+    err => {
+      console.error(err);
+      alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan di browser/perangkat Anda.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function clockOut() {
+  if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  alert("Mohon izinkan akses lokasi untuk absensi pulang.");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const loc = pos.coords.latitude + ',' + pos.coords.longitude;
+      const d = new Date();
+      let log = (S.attendanceLogs || []).find(e => e.date === today());
+      if (log) {
+        log.clockOutTime = d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        log.clockOutLoc = loc;
+        LS.save();
+        if(db) db.collection('attendanceLogs').doc(log.id).update({
+          clockOutTime: log.clockOutTime,
+          clockOutLoc: loc
+        }).catch(e=>console.log(e));
+        if (S.tab === 'log') renderOperator();
+      }
+    },
+    err => {
+      console.error(err);
+      alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
 function renderOperator() {
   if (!S.opDate) S.opDate = today();
   if (!S.opChecklist) S.opChecklist = {};
