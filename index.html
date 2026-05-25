@@ -1504,6 +1504,20 @@ function login() {
 }
 
 function logout() {
+  // Check if operator tries to log out without finishing today's inputs
+  if (S.currentUser && S.currentUser.role === 'operator') {
+    const isToday = S.opDate === today();
+    if (isToday) {
+      const attState = getAttendanceState();
+      const hasClockedIn = attState.log && attState.log.clockInTime;
+      const hasProductionData = S.logEntries.some(e => e.date === today());
+      if (hasClockedIn && !hasProductionData) {
+        const confirmLogout = confirm("Selesaiin dulu yuk! Sebelum keluar.");
+        if (!confirmLogout) return;
+      }
+    }
+  }
+
   if (S.currentUser) {
     writeAuditLog('logout', `Pengguna ${S.currentUser.name} keluar dari sistem.`);
   }
@@ -4316,6 +4330,41 @@ function toggleOpChecklist(date, task) {
   }
 }
 
+function showAppreciationModal() {
+  const modalId = 'op-appreciation-modal';
+  let modal = document.getElementById(modalId);
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.style.position = 'fixed';
+    modal.style.inset = '0';
+    modal.style.background = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '1000';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.padding = '20px';
+    modal.style.backdropFilter = 'blur(4px)';
+    modal.style.animation = 'fadeIn 0.25s ease';
+    document.body.appendChild(modal);
+  }
+  
+  modal.innerHTML = `
+    <div class="card fi" style="max-width:360px; width:100%; padding:24px; text-align:center; background:var(--surface); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.15);">
+      <div style="width:60px; height:60px; background:var(--green-glow); color:var(--green); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:24px; font-weight:700;">
+        ✓
+      </div>
+      <h3 style="margin:0 0 8px 0; font-size:16px; font-weight:800; color:var(--text-primary);">Kerja Bagus, Hendra!</h3>
+      <p style="margin:0 0 20px 0; font-size:12px; color:var(--text-secondary); line-height:1.5;">
+        Data produksi harian telah sukses disimpan dan disinkronkan. Teruskan kerja hebatmu hari ini! 🐓✨
+      </p>
+      <button class="btn btn-g" onclick="document.getElementById('${modalId}').remove()" style="width:100%; padding:10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">
+        Sama-sama!
+      </button>
+    </div>
+  `;
+}
+
 function submitOpLog() {
   if (isPeriodLocked(S.opDate)) {
     alert("⚠️ Transaksi gagal: Periode bulan ini sudah dikunci (Tutup Buku).");
@@ -4347,6 +4396,7 @@ function submitOpLog() {
   setTimeout(() => {
     S.opTemp = null;
     renderOperator();
+    showAppreciationModal();
   }, 1000);
 }
 
