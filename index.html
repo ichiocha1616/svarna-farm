@@ -5190,7 +5190,7 @@ function render(){
   if(S.tab==='beli')     renderBeli();
   
   // update sidebar active
-  ['hub','svarna','log','harga','jual','beli','analitik'].forEach(t=>{
+  ['hub','svarna','log','harga','jual','beli','analitik','absensi'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active',t===S.tab&&!S.section);
   });
   updateCloudUI();
