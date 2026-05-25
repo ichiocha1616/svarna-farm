@@ -3766,6 +3766,63 @@ function getAttendanceState() {
   return { dateStr, h, log };
 }
 
+function clockIn(status) {
+  if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const loc = pos.coords.latitude + ',' + pos.coords.longitude;
+      const d = new Date();
+      const id = 'att_' + Date.now();
+      const newLog = {
+        id: id,
+        date: today(),
+        status: status,
+        clockInTime: d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}),
+        clockInLoc: loc,
+        clockOutTime: null,
+        clockOutLoc: null,
+        note: ''
+      };
+      if (!S.attendanceLogs) S.attendanceLogs = [];
+      S.attendanceLogs.push(newLog);
+      LS.save();
+      if(db) db.collection('attendanceLogs').doc(id).set(newLog).catch(e=>console.log(e));
+      if (S.tab === 'log') renderOperator();
+    },
+    err => {
+      console.error(err);
+      alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan di browser/perangkat Anda.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function clockOut() {
+  if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const loc = pos.coords.latitude + ',' + pos.coords.longitude;
+      const d = new Date();
+      let log = (S.attendanceLogs || []).find(e => e.date === today());
+      if (log) {
+        log.clockOutTime = d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        log.clockOutLoc = loc;
+        LS.save();
+        if(db) db.collection('attendanceLogs').doc(log.id).update({
+          clockOutTime: log.clockOutTime,
+          clockOutLoc: loc
+        }).catch(e=>console.log(e));
+        if (S.tab === 'log') renderOperator();
+      }
+    },
+    err => {
+      console.error(err);
+      alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
 function renderAttendanceUI() {
   const state = getAttendanceState();
   const dateStr = state.dateStr;
@@ -3799,9 +3856,11 @@ function renderAttendanceUI() {
       html += `<div style="color:var(--text-secondary); font-size:11px; display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px; height:12px;"></i> Absensi dibuka pukul 06:00.</div>`;
     } else {
       html += `
-        <div style="color:var(--red); font-size:11px; font-weight:600; display:flex; align-items:center; gap:4px; margin-bottom:6px;"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> Waktu absen normal (06:00-07:00) telah terlewat.</div>
+        <div style="color:var(--red); font-size:11px; font-weight:600; display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+          <i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> Waktu absensi normal (06:00-07:00) telah terlewat.
+        </div>
         <button class="btn" onclick="clockIn('Hadir (Terlambat)')" style="width:100%; background:var(--amber); color:#fff; border:none; padding:8px; font-size:11px; font-weight:600; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:4px;">
-          <i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> Clock In Terlambat
+          <i data-lucide="check" style="width:12px; height:12px;"></i> Absen Sekarang
         </button>
       `;
     }
@@ -3809,7 +3868,7 @@ function renderAttendanceUI() {
     html += `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div style="font-size:12px; color:var(--text-primary); font-weight:600;">
-          Status: <span style="color:var(--gold); font-weight:700;">${log.status}</span>
+          Status: <span style="color:var(--gold); font-weight:700;">	hererenderStatus(log.status)</span>
           <div style="font-size:11px; color:var(--text-secondary); font-weight:400; margin-top:2px;">Masuk: ${log.clockInTime || '-'} (${log.clockInLoc ? 'GPS Aktif' : 'Tanpa Lokasi'})</div>
         </div>
     `;
@@ -3842,30 +3901,11 @@ function renderAttendanceUI() {
   return html;
 }
 
-function setOpTab(tabName) {
-  S.opActiveTab = tabName;
-  const btnInput = document.getElementById('op-tab-btn-input');
-  const btnTasks = document.getElementById('op-tab-btn-tasks');
-  const secInput = document.getElementById('op-sec-input');
-  const secTasks = document.getElementById('op-sec-tasks');
-
-  if (!btnInput || !btnTasks) return;
-
-  if (tabName === 'input') {
-    btnInput.style.background = 'var(--gold)';
-    btnInput.style.color = '#fff';
-    btnTasks.style.background = 'transparent';
-    btnTasks.style.color = 'var(--text-secondary)';
-    if (secInput) secInput.classList.add('active');
-    if (secTasks) secTasks.classList.remove('active');
-  } else {
-    btnTasks.style.background = 'var(--gold)';
-    btnTasks.style.color = '#fff';
-    btnInput.style.background = 'transparent';
-    btnInput.style.color = 'var(--text-secondary)';
-    if (secTasks) secTasks.classList.add('active');
-    if (secInput) secInput.classList.remove('active');
-  }
+function hererenderStatus(status) {
+  if (status.includes('Hadir')) return 'Hadir';
+  if (status.includes('Sakit')) return 'Sakit';
+  if (status.includes('Izin')) return 'Izin';
+  return status;
 }
 
 function renderOperator() {
@@ -3901,8 +3941,286 @@ function renderOperator() {
 
   const last5 = S.logEntries.slice(-5).reverse();
 
+  // Determine current step for wizard
+  const isToday = S.opDate === today();
+  const attState = getAttendanceState();
+  const log = attState.log;
+  const hasClockedIn = log && log.clockInTime;
+  const hasProductionData = S.logEntries.some(e => e.date === S.opDate);
+
+  let currentStep = 'summary'; // Default for history or finished days
+  if (isToday) {
+    if (!hasClockedIn) {
+      currentStep = 'absen';
+    } else if (!hasProductionData) {
+      currentStep = 'input';
+    } else {
+      currentStep = 'summary';
+    }
+  }
+
+  // Calculate pricing summary
+  const H = S.priceHistory;
+  const latestPrice = H && H.length > 0 ? H[H.length - 1] : null;
+  const basePrice = latestPrice ? (latestPrice.acuan < FLOOR_PRICE ? FLOOR_PRICE : latestPrice.acuan) : FLOOR_PRICE;
+  const grosirPrice = basePrice + SPREAD_G;
+  const eceranPrice = basePrice + SPREAD_E;
+
+  let contentHtml = '';
+
+  if (currentStep === 'absen') {
+    // STEP 1: Absensi Masuk
+    contentHtml = `
+      <!-- Progress Bar -->
+      ${renderWizardProgress('absen')}
+      
+      ${renderAttendanceUI()}
+      
+      <div class="card cp" style="padding:20px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle);">
+        <i data-lucide="lock" style="width:24px; height:24px; margin: 0 auto 10px; color:var(--text3);"></i>
+        <div style="font-size:12px; font-weight:600;">Selesaikan absensi masuk hari ini untuk membuka formulir input data harian.</div>
+      </div>
+    `;
+  } else if (currentStep === 'input') {
+    // STEP 2: Input Produksi
+    contentHtml = `
+      <!-- Progress Bar -->
+      ${renderWizardProgress('input')}
+
+      <!-- Attendance status banner -->
+      <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--green); font-weight:600;">
+        <span style="display:flex; align-items:center; gap:6px;"><i data-lucide="check" style="width:14px; height:14px;"></i> Absensi Masuk Selesai (${log.clockInTime || '-'})</span>
+        <span style="font-size:9px; background:var(--green); color:#fff; padding:2px 6px; border-radius:4px; font-weight:700;">DONE</span>
+      </div>
+
+      <div class="card cp" style="margin-bottom: 12px; padding: 14px;">
+        <div class="ct" style="margin-bottom: 12px;">
+          <div class="cb"></div>
+          <span class="cl" style="font-size:12px; font-weight:700;">Data Produksi — ${fmtD(S.opDate)}</span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="egg" style="width:11px; height:11px; color:var(--gold);"></i> Layak (Butir)</label>
+            <input type="number" min="0" step="1" id="val-butir" class="inp op-inp" value="${S.opTemp.butir}" oninput="opInput('butir', this.value)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="alert-triangle" style="width:11px; height:11px; color:var(--red);"></i> Rusak / BS (Btr)</label>
+            <input type="number" min="0" step="1" id="val-telurRusak" class="inp op-inp" value="${S.opTemp.telurRusak}" oninput="opInput('telurRusak', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="scale" style="width:11px; height:11px; color:var(--gold);"></i> Berat Layak (kg)</label>
+            <input type="number" min="0" step="0.01" id="val-kg" class="inp op-inp" value="${S.opTemp.kg}" oninput="opInput('kg', this.value, true)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="wheat" style="width:11px; height:11px; color:var(--amber);"></i> Konsumsi Pakan (kg)</label>
+            <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp op-inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="color: var(--amber); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+        </div>
+
+        <div class="op-field-container" style="margin-bottom: 14px;">
+          <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="skull" style="width:11px; height:11px; color:var(--red);"></i> Ayam Mati (Ekor)</label>
+          <input type="number" min="0" step="1" id="val-ayamMati" class="inp op-inp" value="${S.opTemp.ayamMati}" oninput="opInput('ayamMati', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+        </div>
+
+        <button id="op-submit-btn" class="btn btn-g" onclick="submitOpLog()" style="width: 100%; padding: 10px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 8px;">
+          <i data-lucide="save" style="width:14px; height:14px;"></i> Simpan & Sinkronisasi
+        </button>
+      </div>
+
+      <div class="card cp" style="padding:15px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle);">
+        <i data-lucide="lock" style="width:18px; height:18px; margin: 0 auto 6px; color:var(--text3);"></i>
+        <div style="font-size:11px;">Formulir Checklist Tugas akan aktif setelah Data Produksi tersimpan.</div>
+      </div>
+    `;
+  } else {
+    // STEP 3: Summary (Checklist Tugas, Riwayat & Harga)
+    contentHtml = `
+      <!-- Progress Bar (Only show if today) -->
+      ${isToday ? renderWizardProgress('summary') : ''}
+      
+      ${isToday ? `
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <div style="flex:1; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:6px; font-size:10px; color:var(--green); font-weight:600;">
+            <i data-lucide="check" style="width:12px; height:12px;"></i> Absen (${log.clockInTime || '-'})
+          </div>
+          <div style="flex:1; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:6px; font-size:10px; color:var(--green); font-weight:600;">
+            <i data-lucide="check" style="width:12px; height:12px;"></i> Data Produksi
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Geolocation clock-out banner if still needed -->
+      ${renderAttendanceUI()}
+
+      <!-- 1. checklist tugas -->
+      <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
+        <div class="ct" style="margin-bottom: 12px;">
+          <div class="cb y"></div>
+          <span class="cl" style="font-size:12px; font-weight:700;">Tugas Mandiri Operator</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.makan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'makan')">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="wheat" style="width:12px; height:12px; color:var(--amber);"></i> Memberi makan pagi & sore</div>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.bersih ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'bersih')">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="trash-2" style="width:12px; height:12px; color:var(--text-secondary);"></i> Bersihkan kandang & sanitasi</div>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.telur ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'telur')">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="egg" style="width:12px; height:12px; color:var(--gold);"></i> Mengambil & sortir telur</div>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.sehat ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'sehat')">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="activity" style="width:12px; height:12px; color:var(--green);"></i> Memeriksa kesehatan ayam</div>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.simpan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'simpan')">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:12px; height:12px; color:var(--gold);"></i> Menginput data log ke OS</div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 2. Harga Jual Hari Ini -->
+      <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
+        <div class="ct" style="margin-bottom: 10px;"><div class="cb"></div><span class="cl" style="font-size:12px; font-weight:700;">Harga Jual Hari Ini</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🏷️ Grosir</div>
+            <div style="font-size:14px; font-weight:800; color:var(--gold);">${fRp(grosirPrice)}</div>
+            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Min. 5 tray (9 kg)</div>
+          </div>
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🛒 Eceran</div>
+            <div style="font-size:14px; font-weight:800; color:var(--green);">${fRp(eceranPrice)}</div>
+            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Di bawah 5 tray</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Riwayat 5 Hari (With full-width layout alignment) -->
+      <div class="card cp" style="padding: 14px; margin-bottom:12px;">
+        <div class="ct" style="margin-bottom: 12px;">
+          <div class="cb g"></div>
+          <span class="cl" style="font-size:12px; font-weight:700;">Riwayat Produksi (5 Hari)</span>
+        </div>
+        <div class="tbl-w" style="overflow-x:auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left;">
+                <th style="padding: 6px 4px; color: var(--text-muted); width: 25%;">Tanggal</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 35%;">Butir</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 25%;">Berat</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 15%;">Mati</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${last5.map(e => `
+                <tr style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;" onclick="changeOpDate('${e.date}')">
+                  <td style="padding: 8px 4px; font-weight: 600; color: var(--text-primary);">${fmtD(e.date)}</td>
+                  <td style="padding: 8px 4px; text-align: right; color: var(--gold); font-weight: 600;">${e.butir} btr ${e.telurRusak ? `<span style="color:var(--red);font-size:9px;">(+\ ${e.telurRusak})</span>` : ''}</td>
+                  <td style="padding: 8px 4px; text-align: right; color: var(--text-secondary);">${num(e.kg).toFixed(1)} kg</td>
+                  <td style="padding: 8px 4px; text-align: right; color: ${num(e.ayamMati) > 0 ? 'var(--red)' : 'var(--text-muted)'};">${e.ayamMati || 0}</td>
+                </tr>
+              `).join('')}
+              ${last5.length === 0 ? `<tr><td colspan="4" style="text-align: center; padding: 8px; color: var(--text-muted);">Belum ada riwayat.</td></tr>` : ''}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Option to Edit Data Today -->
+      ${isToday ? `
+        <button class="btn" onclick="editTodayData()" style="width:100%; border:1px solid var(--border-subtle); background:transparent; padding:8px; border-radius:8px; font-size:11px; font-weight:600; color:var(--text-secondary); display:flex; align-items:center; justify-content:center; gap:4px; margin-top:10px;">
+          <i data-lucide="edit-3" style="width:12px; height:12px;"></i> Koreksi / Edit Data Harian
+        </button>
+      ` : ''}
+    `;
+  }
+
+  // Fallback for edit past mode (allows updating historical records directly)
+  if (!isToday) {
+    contentHtml = `
+      <!-- Indicator that past date is selected -->
+      <div style="background:var(--gold-glow); border:1px solid rgba(196,150,12,0.15); border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--gold); font-weight:600;">
+        <span style="display:flex; align-items:center; gap:6px;"><i data-lucide="edit-3" style="width:14px; height:14px;"></i> Mengedit Data Tanggal ${fmtD(S.opDate)}</span>
+        <button class="btn" onclick="changeOpDate(today())" style="font-size:9px; background:var(--gold); color:#fff; padding:2px 6px; border:none; border-radius:4px; font-weight:700; cursor:pointer;">KEMBALI KE HARI INI</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+        <div class="card cp" style="padding: 14px;">
+          <div class="ct" style="margin-bottom: 12px;">
+            <div class="cb"></div>
+            <span class="cl" style="font-size:12px; font-weight:700;">Data Produksi — ${fmtD(S.opDate)}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="op-field-container">
+              <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="egg" style="width:11px; height:11px; color:var(--gold);"></i> Layak (Butir)</label>
+              <input type="number" min="0" step="1" id="val-butir" class="inp op-inp" value="${S.opTemp.butir}" oninput="opInput('butir', this.value)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            </div>
+            <div class="op-field-container">
+              <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="alert-triangle" style="width:11px; height:11px; color:var(--red);"></i> Rusak / BS (Btr)</label>
+              <input type="number" min="0" step="1" id="val-telurRusak" class="inp op-inp" value="${S.opTemp.telurRusak}" oninput="opInput('telurRusak', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="op-field-container">
+              <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="scale" style="width:11px; height:11px; color:var(--gold);"></i> Berat Layak (kg)</label>
+              <input type="number" min="0" step="0.01" id="val-kg" class="inp op-inp" value="${S.opTemp.kg}" oninput="opInput('kg', this.value, true)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            </div>
+            <div class="op-field-container">
+              <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="wheat" style="width:11px; height:11px; color:var(--amber);"></i> Konsumsi Pakan (kg)</label>
+              <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp op-inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="color: var(--amber); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            </div>
+          </div>
+          <div class="op-field-container" style="margin-bottom: 14px;">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="skull" style="width:11px; height:11px; color:var(--red);"></i> Ayam Mati (Ekor)</label>
+            <input type="number" min="0" step="1" id="val-ayamMati" class="inp op-inp" value="${S.opTemp.ayamMati}" oninput="opInput('ayamMati', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+          <button id="op-submit-btn" class="btn btn-g" onclick="submitOpLog()" style="width: 100%; padding: 10px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 8px;">
+            <i data-lucide="save" style="width:14px; height:14px;"></i> Update Data Produksi
+          </button>
+        </div>
+
+        <div class="card cp" style="padding: 14px;">
+          <div class="ct" style="margin-bottom: 12px;">
+            <div class="cb y"></div>
+            <span class="cl" style="font-size:12px; font-weight:700;">Tugas Mandiri Operator</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+              <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.makan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'makan')">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="wheat" style="width:12px; height:12px; color:var(--amber);"></i> Memberi makan pagi & sore</div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+              <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.bersih ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'bersih')">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="trash-2" style="width:12px; height:12px; color:var(--text-secondary);"></i> Bersihkan kandang & sanitasi</div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+              <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.telur ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'telur')">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="egg" style="width:12px; height:12px; color:var(--gold);"></i> Mengambil & sortir telur</div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+              <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.sehat ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'sehat')">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="activity" style="width:12px; height:12px; color:var(--green);"></i> Memeriksa kesehatan ayam</div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
+              <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.simpan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'simpan')">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:12px; height:12px; color:var(--gold);"></i> Menginput data log ke OS</div>
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   document.getElementById('content').innerHTML = `
-    <div class="operator-workspace fade-in" style="max-width: 800px; margin: 0 auto; padding: 12px 14px;">
+    <div class="operator-workspace fade-in" style="max-width: 600px; margin: 0 auto; padding: 12px 14px;">
       
       <!-- Compact Title Header -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
@@ -3930,170 +4248,46 @@ function renderOperator() {
         <input type="date" id="op-date-input" class="inp" value="${S.opDate}" onchange="changeOpDate(this.value)" style="width: 130px; margin: 0; padding: 4px 8px; text-align: center; font-weight: 600; font-size:12px; height:30px; border-radius:8px;">
       </div>
 
-      <!-- Segment Tabs for Mobile -->
-      <div class="op-tabs" style="display:flex; gap:4px; background:var(--surface-hover); padding:3px; border-radius:8px; margin-bottom:12px;">
-        <button id="op-tab-btn-input" onclick="setOpTab('input')" style="flex:1; border:none; padding:7px; font-weight:700; font-size:11px; border-radius:6px; cursor:pointer; background:var(--gold); color:#fff; transition:all 0.2s;">
-          Input Harian
-        </button>
-        <button id="op-tab-btn-tasks" onclick="setOpTab('tasks')" style="flex:1; border:none; padding:7px; font-weight:700; font-size:11px; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
-          Tugas & Riwayat
-        </button>
-      </div>
-
-      <div class="op-grid">
-        
-        <!-- Tab/Section 1: Inputs & Attendance -->
-        <div id="op-sec-input" class="op-sec active">
-          ${renderAttendanceUI()}
-          
-          <div class="card cp" style="margin-bottom: 12px; padding: 14px;">
-            <div class="ct" style="margin-bottom: 12px;">
-              <div class="cb"></div>
-              <span class="cl" style="font-size:12px; font-weight:700;">Data Produksi — ${fmtD(S.opDate)}</span>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-              <div class="op-field-container">
-                <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="egg" style="width:11px; height:11px; color:var(--gold);"></i> Layak (Butir)</label>
-                <input type="number" min="0" step="1" id="val-butir" class="inp op-inp" value="${S.opTemp.butir}" oninput="opInput('butir', this.value)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-              </div>
-              <div class="op-field-container">
-                <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="alert-triangle" style="width:11px; height:11px; color:var(--red);"></i> Rusak / BS (Btr)</label>
-                <input type="number" min="0" step="1" id="val-telurRusak" class="inp op-inp" value="${S.opTemp.telurRusak}" oninput="opInput('telurRusak', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-              </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-              <div class="op-field-container">
-                <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="scale" style="width:11px; height:11px; color:var(--gold);"></i> Berat Layak (kg)</label>
-                <input type="number" min="0" step="0.01" id="val-kg" class="inp op-inp" value="${S.opTemp.kg}" oninput="opInput('kg', this.value, true)" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-              </div>
-              <div class="op-field-container">
-                <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="wheat" style="width:11px; height:11px; color:var(--amber);"></i> Konsumsi Pakan (kg)</label>
-                <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp op-inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="color: var(--amber); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-              </div>
-            </div>
-
-            <div class="op-field-container" style="margin-bottom: 14px;">
-              <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="skull" style="width:11px; height:11px; color:var(--red);"></i> Ayam Mati (Ekor)</label>
-              <input type="number" min="0" step="1" id="val-ayamMati" class="inp op-inp" value="${S.opTemp.ayamMati}" oninput="opInput('ayamMati', this.value)" style="color: var(--red); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-            </div>
-
-            <button id="op-submit-btn" class="btn btn-g" onclick="submitOpLog()" style="width: 100%; padding: 10px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 8px;">
-              <i data-lucide="save" style="width:14px; height:14px;"></i> Simpan & Sinkronisasi
-            </button>
-          </div>
-        </div>
-
-        <!-- Tab/Section 2: Tasks & History -->
-        <div id="op-sec-tasks" class="op-sec">
-          <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
-            <div class="ct" style="margin-bottom: 12px;">
-              <div class="cb y"></div>
-              <span class="cl" style="font-size:12px; font-weight:700;">Tugas Mandiri Operator</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.makan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'makan')">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="wheat" style="width:12px; height:12px; color:var(--amber);"></i> Memberi makan pagi & sore</div>
-              </label>
-              <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.bersih ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'bersih')">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="trash-2" style="width:12px; height:12px; color:var(--text-secondary);"></i> Bersihkan kandang & sanitasi</div>
-              </label>
-              <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.telur ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'telur')">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="egg" style="width:12px; height:12px; color:var(--gold);"></i> Mengambil & sortir telur</div>
-              </label>
-              <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.sehat ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'sehat')">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="activity" style="width:12px; height:12px; color:var(--green);"></i> Memeriksa kesehatan ayam</div>
-              </label>
-              <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--surface2); border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" style="width: 16px; height: 16px; accent-color: var(--gold);" ${ch.simpan ? 'checked' : ''} onchange="toggleOpChecklist('${S.opDate}', 'simpan')">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:12px; height:12px; color:var(--gold);"></i> Menginput data log ke OS</div>
-              </label>
-            </div>
-          </div>
-
-          <div class="card cp" style="padding: 14px;">
-            <div class="ct" style="margin-bottom: 12px;">
-              <div class="cb g"></div>
-              <span class="cl" style="font-size:12px; font-weight:700;">Riwayat Produksi (5 Hari)</span>
-            </div>
-            <div class="tbl-w" style="overflow-x:auto;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                <thead>
-                  <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left;">
-                    <th style="padding: 6px 4px; color: var(--text-muted);">Tanggal</th>
-                    <th style="padding: 6px 4px; text-align: right; color: var(--text-muted);">Butir</th>
-                    <th style="padding: 6px 4px; text-align: right; color: var(--text-muted);">Berat</th>
-                    <th style="padding: 6px 4px; text-align: right; color: var(--text-muted);">Mati</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${last5.map(e => `
-                    <tr style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;" onclick="changeOpDate('${e.date}')">
-                      <td style="padding: 8px 4px; font-weight: 600; color: var(--text-primary);">${fmtD(e.date)}</td>
-                      <td style="padding: 8px 4px; text-align: right; color: var(--gold); font-weight: 600;">${e.butir} btr ${e.telurRusak ? `<span style="color:var(--red);font-size:9px;">(+${e.telurRusak})</span>` : ''}</td>
-                      <td style="padding: 8px 4px; text-align: right; color: var(--text-secondary);">${num(e.kg).toFixed(1)} kg</td>
-                      <td style="padding: 8px 4px; text-align: right; color: ${num(e.ayamMati) > 0 ? 'var(--red)' : 'var(--text-muted)'};">${e.ayamMati || 0}</td>
-                    </tr>
-                  `).join('')}
-                  ${last5.length === 0 ? `<tr><td colspan="4" style="text-align: center; padding: 8px; color: var(--text-muted);">Belum ada riwayat.</td></tr>` : ''}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      ${contentHtml}
 
     </div>
   `;
-
-  // Apply custom CSS grid for operator workspace layout
-  const styleElId = 'op-layout-styles';
-  if (!document.getElementById(styleElId)) {
-    const style = document.createElement('style');
-    style.id = styleElId;
-    style.textContent = `
-      .op-tabs {
-        display: flex;
-      }
-      .op-sec {
-        display: none;
-      }
-      .op-sec.active {
-        display: block;
-      }
-      .op-grid {
-        display: block;
-      }
-      @media(min-width: 768px) {
-        .op-tabs {
-          display: none !important;
-        }
-        .op-sec {
-          display: block !important;
-        }
-        .op-grid {
-          display: grid;
-          grid-template-columns: 1.2fr 0.8fr;
-          gap: 16px;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Set initial active state of tab
-  setOpTab(S.opActiveTab || 'input');
 
   // Trigger Lucide icon rendering
   if (window.lucide) {
     lucide.createIcons();
   }
+}
+
+function editTodayData() {
+  // Removes today's entry from logEntries to go back to Step 2
+  const idx = S.logEntries.findIndex(e => e.date === today());
+  if (idx !== -1) {
+    S.logEntries.splice(idx, 1);
+    LS.save();
+    if (db) {
+      db.collection('productionLogs').doc(today()).delete().catch(e=>console.log(e));
+    }
+  }
+  renderOperator();
+}
+
+function renderWizardProgress(current) {
+  return `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; background:var(--surface2); padding:8px 12px; border-radius:10px; font-size:10px; font-weight:700; color:var(--text-secondary);">
+      <div style="display:flex; align-items:center; gap:4px; color:${current === 'absen' ? 'var(--gold)' : 'var(--green)'};">
+        <span style="background:${current === 'absen' ? 'var(--gold)' : 'var(--green)'}; color:#fff; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:9px;">1</span> Absensi
+      </div>
+      <div style="flex:1; height:2px; background:${current !== 'absen' ? 'var(--green)' : 'var(--border-subtle)'}; margin:0 8px;"></div>
+      <div style="display:flex; align-items:center; gap:4px; color:${current === 'input' ? 'var(--gold)' : (current === 'summary' ? 'var(--green)' : 'var(--text-secondary)')};">
+        <span style="background:${current === 'input' ? 'var(--gold)' : (current === 'summary' ? 'var(--green)' : 'var(--surface3)')}; color:${current === 'input' || current === 'summary' ? '#fff' : 'var(--text-secondary)'}; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:9px;">2</span> Input Data
+      </div>
+      <div style="flex:1; height:2px; background:${current === 'summary' ? 'var(--green)' : 'var(--border-subtle)'}; margin:0 8px;"></div>
+      <div style="display:flex; align-items:center; gap:4px; color:${current === 'summary' ? 'var(--gold)' : 'var(--text-secondary)'};">
+        <span style="background:${current === 'summary' ? 'var(--gold)' : 'var(--surface3)'}; color:${current === 'summary' ? '#fff' : 'var(--text-secondary)'}; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-size:9px;">3</span> Checklist & Info
+      </div>
+    </div>
+  `;
 }
 function changeOpDate(date) {
   S.opDate = date;
