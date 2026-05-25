@@ -721,6 +721,9 @@ body.dark .bc-b{background:rgba(0,0,0,0.25)}
 /* ═══ TRANSITIONS ═══ */
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fi{animation:fadeIn .35s cubic-bezier(0.16, 1, 0.3, 1) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
+
 
 /* ═══ LOGIN SCREEN ═══ */
 body.logged-out{display:block !important;background:var(--bg)}
@@ -3782,8 +3785,11 @@ function getAttendanceState() {
 
 function clockIn(status) {
   if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  S.locating = true;
+  if (S.tab === 'log') renderOperator();
   navigator.geolocation.getCurrentPosition(
     pos => {
+      S.locating = false;
       const loc = pos.coords.latitude + ',' + pos.coords.longitude;
       const d = new Date();
       const id = 'att_' + Date.now();
@@ -3804,8 +3810,10 @@ function clockIn(status) {
       if (S.tab === 'log') renderOperator();
     },
     err => {
+      S.locating = false;
       console.error(err);
       alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan di browser/perangkat Anda.");
+      if (S.tab === 'log') renderOperator();
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -3818,8 +3826,11 @@ function clockOut() {
     return;
   }
   if (!navigator.geolocation) return alert("Browser tidak mendukung fitur lokasi.");
+  S.locating = true;
+  if (S.tab === 'log') renderOperator();
   navigator.geolocation.getCurrentPosition(
     pos => {
+      S.locating = false;
       const loc = pos.coords.latitude + ',' + pos.coords.longitude;
       const d = new Date();
       let log = (S.attendanceLogs || []).find(e => e.date === today());
@@ -3835,8 +3846,10 @@ function clockOut() {
       }
     },
     err => {
+      S.locating = false;
       console.error(err);
       alert("Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) diaktifkan.");
+      if (S.tab === 'log') renderOperator();
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -3849,6 +3862,18 @@ function renderAttendanceUI() {
   const log = state.log;
   
   if (dateStr !== S.opDate) return ''; // Only show attendance for today
+  
+  if (S.locating) {
+    return `
+      <div class="card cp fade-in" style="margin-bottom: 12px; padding: 16px 14px; text-align: center; border-left: 3px solid var(--gold); background: var(--surface2);">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+          <i data-lucide="loader" class="spin" style="width:24px; height:24px; color:var(--gold);"></i>
+          <div style="font-size:12px; font-weight:700; color:var(--text-primary);">Mendapatkan lokasi GPS...</div>
+          <div style="font-size:10px; color:var(--text-secondary);">Mohon tunggu sebentar, jangan menutup atau keluar dari aplikasi.</div>
+        </div>
+      </div>
+    `;
+  }
   
   let html = `<div class="card cp fade-in" style="margin-bottom: 12px; padding: 12px 14px; border-left: 3px solid var(--gold); background: var(--surface2);">`;
   html += `<h3 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
@@ -3921,10 +3946,63 @@ function renderAttendanceUI() {
 }
 
 function hererenderStatus(status) {
+  if (status.includes('Terlambat')) return 'Terlambat';
   if (status.includes('Hadir')) return 'Hadir';
   if (status.includes('Sakit')) return 'Sakit';
   if (status.includes('Izin')) return 'Izin';
   return status;
+}
+
+function renderOpSummaryInfo(grosirPrice, eceranPrice, last5) {
+  return `
+      <!-- Harga Jual Hari Ini -->
+      <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
+        <div class="ct" style="margin-bottom: 10px;"><div class="cb"></div><span class="cl" style="font-size:12px; font-weight:700;">Harga Jual Hari Ini</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🏷️ Grosir</div>
+            <div style="font-size:14px; font-weight:800; color:var(--gold);">${fRp(grosirPrice)}</div>
+            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Min. 5 tray (9 kg)</div>
+          </div>
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🛒 Eceran</div>
+            <div style="font-size:14px; font-weight:800; color:var(--green);">${fRp(eceranPrice)}</div>
+            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Di bawah 5 tray</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Riwayat Produksi (5 Hari) -->
+      <div class="card cp" style="padding: 14px; margin-bottom:12px;">
+        <div class="ct" style="margin-bottom: 12px;">
+          <div class="cb g"></div>
+          <span class="cl" style="font-size:12px; font-weight:700;">Riwayat Produksi (5 Hari)</span>
+        </div>
+        <div class="tbl-w" style="overflow-x:auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left;">
+                <th style="padding: 6px 4px; color: var(--text-muted); width: 25%;">Tanggal</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 35%;">Butir</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 25%;">Berat</th>
+                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 15%;">Mati</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${last5.map(e => `
+                <tr style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;" onclick="changeOpDate('${e.date}')">
+                  <td style="padding: 8px 4px; font-weight: 600; color: var(--text-primary);">${fmtD(e.date)}</td>
+                  <td style="padding: 8px 4px; text-align: right; color: var(--gold); font-weight: 600;">${e.butir} btr ${e.telurRusak ? `<span style="color:var(--red);font-size:9px;">(+ ${e.telurRusak})</span>` : ''}</td>
+                  <td style="padding: 8px 4px; text-align: right; color: var(--text-secondary);">${num(e.kg).toFixed(1)} kg</td>
+                  <td style="padding: 8px 4px; text-align: right; color: ${num(e.ayamMati) > 0 ? 'var(--red)' : 'var(--text-muted)'};">${e.ayamMati || 0}</td>
+                </tr>
+              `).join('')}
+              ${last5.length === 0 ? `<tr><td colspan="4" style="text-align: center; padding: 8px; color: var(--text-muted);">Belum ada riwayat.</td></tr>` : ''}
+            </tbody>
+          </table>
+        </div>
+      </div>
+  `;
 }
 
 function renderOperator() {
@@ -4000,10 +4078,12 @@ function renderOperator() {
       
       ${renderAttendanceUI()}
       
-      <div class="card cp" style="padding:20px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle);">
+      <div class="card cp" style="padding:20px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle); margin-bottom:12px;">
         <i data-lucide="lock" style="width:24px; height:24px; margin: 0 auto 10px; color:var(--text3);"></i>
         <div style="font-size:12px; font-weight:600;">Selesaikan absensi masuk hari ini untuk membuka formulir input data harian.</div>
       </div>
+
+      ${renderOpSummaryInfo(grosirPrice, eceranPrice, last5)}
     `;
   } else if (currentStep === 'input') {
     // STEP 2: Input Produksi
@@ -4055,10 +4135,12 @@ function renderOperator() {
         </button>
       </div>
 
-      <div class="card cp" style="padding:15px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle);">
+      <div class="card cp" style="padding:15px; text-align:center; color:var(--text-secondary); border-radius:12px; border:1px dashed var(--border-subtle); margin-bottom:12px;">
         <i data-lucide="lock" style="width:18px; height:18px; margin: 0 auto 6px; color:var(--text3);"></i>
         <div style="font-size:11px;">Formulir Checklist Tugas akan aktif setelah Data Produksi tersimpan.</div>
       </div>
+
+      ${renderOpSummaryInfo(grosirPrice, eceranPrice, last5)}
     `;
   } else {
     // STEP 3: Summary (Checklist Tugas, Riwayat & Harga)
@@ -4141,53 +4223,8 @@ function renderOperator() {
         </div>
       </div>
 
-      <!-- 2. Harga Jual Hari Ini -->
-      <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
-        <div class="ct" style="margin-bottom: 10px;"><div class="cb"></div><span class="cl" style="font-size:12px; font-weight:700;">Harga Jual Hari Ini</span></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
-            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🏷️ Grosir</div>
-            <div style="font-size:14px; font-weight:800; color:var(--gold);">${fRp(grosirPrice)}</div>
-            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Min. 5 tray (9 kg)</div>
-          </div>
-          <div style="background:var(--surface2); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle);">
-            <div style="font-size:9px; color:var(--text-secondary); margin-bottom:2px;">🛒 Eceran</div>
-            <div style="font-size:14px; font-weight:800; color:var(--green);">${fRp(eceranPrice)}</div>
-            <div style="font-size:8px; color:var(--text-muted); margin-top:2px;">Di bawah 5 tray</div>
-          </div>
-        </div>
-      </div>
+      ${renderOpSummaryInfo(grosirPrice, eceranPrice, last5)}
 
-      <!-- 3. Riwayat 5 Hari (With full-width layout alignment) -->
-      <div class="card cp" style="padding: 14px; margin-bottom:12px;">
-        <div class="ct" style="margin-bottom: 12px;">
-          <div class="cb g"></div>
-          <span class="cl" style="font-size:12px; font-weight:700;">Riwayat Produksi (5 Hari)</span>
-        </div>
-        <div class="tbl-w" style="overflow-x:auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
-            <thead>
-              <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left;">
-                <th style="padding: 6px 4px; color: var(--text-muted); width: 25%;">Tanggal</th>
-                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 35%;">Butir</th>
-                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 25%;">Berat</th>
-                <th style="padding: 6px 4px; text-align: right; color: var(--text-muted); width: 15%;">Mati</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${last5.map(e => `
-                <tr style="border-bottom: 1px solid var(--border-subtle); cursor: pointer;" onclick="changeOpDate('${e.date}')">
-                  <td style="padding: 8px 4px; font-weight: 600; color: var(--text-primary);">${fmtD(e.date)}</td>
-                  <td style="padding: 8px 4px; text-align: right; color: var(--gold); font-weight: 600;">${e.butir} btr ${e.telurRusak ? `<span style="color:var(--red);font-size:9px;">(+\ ${e.telurRusak})</span>` : ''}</td>
-                  <td style="padding: 8px 4px; text-align: right; color: var(--text-secondary);">${num(e.kg).toFixed(1)} kg</td>
-                  <td style="padding: 8px 4px; text-align: right; color: ${num(e.ayamMati) > 0 ? 'var(--red)' : 'var(--text-muted)'};">${e.ayamMati || 0}</td>
-                </tr>
-              `).join('')}
-              ${last5.length === 0 ? `<tr><td colspan="4" style="text-align: center; padding: 8px; color: var(--text-muted);">Belum ada riwayat.</td></tr>` : ''}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       <!-- 4. Riwayat Absensi Anda -->
       <div class="card cp" style="padding: 14px; margin-bottom: 12px;">
@@ -4342,7 +4379,7 @@ function renderOperator() {
     <div class="operator-workspace fade-in" style="max-width: 600px; margin: 0 auto; padding: 12px 14px;">
       
       <!-- Compact Title Header -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+      <div style="display: flex; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <div style="background:var(--gold-glow); padding:6px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
             <i data-lucide="layout-dashboard" style="width:18px; height:18px; color:var(--gold);"></i>
@@ -4352,10 +4389,6 @@ function renderOperator() {
             <div style="font-size: 10px; color: var(--text-secondary); margin-top: 1px;">Svarna Farm Tuban</div>
           </div>
         </div>
-        <button class="icon-btn" onclick="logout()" style="border-color: var(--red); color: var(--red); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;">
-          <i data-lucide="log-out" style="width: 13px; height: 13px; color: var(--red);"></i>
-          <span>Keluar</span>
-        </button>
       </div>
 
       <!-- Compact Date Card -->
@@ -4364,7 +4397,7 @@ function renderOperator() {
           <i data-lucide="calendar" style="width:14px; height:14px; color:var(--text-secondary);"></i>
           <span style="font-size:12px; font-weight:700; color:var(--text-primary);">Tanggal Kerja:</span>
         </div>
-        <input type="date" id="op-date-input" class="inp" value="${S.opDate}" onchange="changeOpDate(this.value)" style="width: 130px; margin: 0; padding: 4px 8px; text-align: center; font-weight: 600; font-size:12px; height:30px; border-radius:8px;">
+        <input type="date" id="op-date-input" class="inp" value="${S.opDate}" max="${today()}" onchange="changeOpDate(this.value)" style="width: 130px; margin: 0; padding: 4px 8px; text-align: center; font-weight: 600; font-size:12px; height:30px; border-radius:8px;">
       </div>
 
       ${contentHtml}
@@ -4379,13 +4412,24 @@ function renderOperator() {
 }
 
 function editTodayData() {
-  // Removes today's entry from logEntries to go back to Step 2
-  const idx = S.logEntries.findIndex(e => e.date === today());
-  if (idx !== -1) {
-    S.logEntries.splice(idx, 1);
+  const entry = S.logEntries.find(e => e.date === today());
+  if (entry) {
+    S.opTemp = {
+      butir: num(entry.butir),
+      telurRusak: num(entry.telurRusak),
+      kg: num(entry.kg),
+      kgPakan: num(entry.kgPakan),
+      ayamMati: num(entry.ayamMati)
+    };
+    
+    const idx = S.logEntries.findIndex(e => e.date === today());
+    if (idx !== -1) {
+      S.logEntries.splice(idx, 1);
+    }
+    
     LS.save();
     if (db) {
-      db.collection('productionLogs').doc(today()).delete().catch(e=>console.log(e));
+      db.collection('logEntries').doc(today()).delete().catch(e => console.error(e));
     }
   }
   renderOperator();
@@ -4559,11 +4603,32 @@ function submitOpLog() {
     return;
   }
   if (!S.opTemp) S.opTemp = {};
+  
+  const butir = S.opTemp.butir || 0;
+  const kg = S.opTemp.kg || 0;
+  
+  if (butir > 0 && kg === 0) {
+    alert("⚠️ Mohon periksa kembali: Jumlah telur layak lebih dari 0 butir, tetapi beratnya masih 0 kg.");
+    return;
+  }
+  if (butir === 0 && kg > 0) {
+    alert("⚠️ Mohon periksa kembali: Berat telur layak lebih dari 0 kg, tetapi jumlah telurnya 0 butir.");
+    return;
+  }
+  
+  if (butir > 0 && kg > 0) {
+    const avgWeight = (kg * 1000) / butir;
+    if (avgWeight < 40 || avgWeight > 85) {
+      const confirmProceed = confirm(`⚠️ Perhatian: Rata-rata berat telur Anda adalah ${avgWeight.toFixed(1)} gram per butir. \n\nBiasanya berat telur rata-rata berkisar antara 40 hingga 85 gram per butir. Apakah data yang Anda masukkan sudah benar? \n\n(Jumlah: ${butir} butir, Berat: ${kg} kg)`);
+      if (!confirmProceed) return;
+    }
+  }
+  
   const entry = {
     date: S.opDate,
-    butir: S.opTemp.butir || 0,
+    butir: butir,
     telurRusak: S.opTemp.telurRusak || 0,
-    kg: S.opTemp.kg || 0,
+    kg: kg,
     kgPakan: S.opTemp.kgPakan || 0,
     ayamMati: S.opTemp.ayamMati || 0
   };
