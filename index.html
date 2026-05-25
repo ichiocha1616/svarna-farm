@@ -1198,7 +1198,7 @@ const FILE_NAME   = 'svarna-farm-backup.json';
 const S = {
   hubSubTab: 'ringkasan',
   tab:'log', section:'',
-  dark:true,
+  dark:false,
   currentUser:null,
   auditLogs:[],
   lockedPeriods:[],
@@ -2988,7 +2988,7 @@ const LS={
       localStorage.setItem('sf-beli',  JSON.stringify(S.purchaseEntries));
       localStorage.setItem('sf-items', JSON.stringify(S.customItems));
       localStorage.setItem('sf-cats',  JSON.stringify(S.customCats));
-      localStorage.setItem('sf-dark',  S.dark?'1':'0');
+      localStorage.setItem('sf-dark-v2', S.dark?'1':'0');
       localStorage.setItem('sf-user',  JSON.stringify(S.currentUser));
       localStorage.setItem('sf-audit', JSON.stringify(S.auditLogs));
       localStorage.setItem('sf-locked', JSON.stringify(S.lockedPeriods));
@@ -3012,7 +3012,7 @@ const LS={
     try{const ci=JSON.parse(localStorage.getItem('sf-items'));if(ci?.length)S.customItems=ci;}catch(_){}
     try{const cc=JSON.parse(localStorage.getItem('sf-cats'));if(cc?.length)S.customCats=cc;}catch(_){}
     try{S.opChecklist     =JSON.parse(localStorage.getItem('sf-opChecklist')||'{}')}catch(_){}
-    S.dark = (localStorage.getItem('sf-dark')||'1')==='1';
+    S.dark = localStorage.getItem('sf-dark-v2') === '1';
     
     if (Array.isArray(S.logEntries)) S.logEntries.sort((a,b)=>a.date.localeCompare(b.date));
     if (Array.isArray(S.priceHistory)) S.priceHistory.sort((a,b)=>a.date.localeCompare(b.date));
