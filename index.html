@@ -9,8 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest"></script>
-
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{overflow-x:clip;scroll-behavior:smooth}
@@ -1261,6 +1261,179 @@ body.dark .kpi-card-exec:hover{
 .text-green { color: var(--green) !important; }
 .text-red { color: var(--red) !important; }
 .text-amber { color: var(--amber) !important; }
+
+/* ═══ RECEIPT / STRUK MODAL & PAPER ═══ */
+.rc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+.rc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 95vh;
+  width: 100%;
+  max-width: 360px;
+}
+.rc-paper-wrapper {
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  scrollbar-width: thin;
+}
+.rc-paper {
+  background: #ffffff;
+  color: #111827;
+  padding: 24px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  position: relative;
+}
+.rc-paper * {
+  color: #111827 !important; /* Force black/dark text inside paper */
+}
+.rc-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.rc-logo-placeholder {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+.rc-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.rc-subtitle {
+  font-size: 9px;
+  color: #6b7280 !important;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.rc-divider {
+  border-top: 1px dashed #cccccc;
+  margin: 10px 0;
+  height: 0;
+}
+.rc-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.rc-label {
+  color: #6b7280 !important;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+.rc-value {
+  text-align: right;
+  font-weight: 500;
+  word-break: break-all;
+}
+.rc-tbl-header {
+  font-weight: 700;
+  border-bottom: 1px dashed #cccccc;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+.rc-tbl-row {
+  padding: 3px 0;
+}
+.rc-total-section {
+  border-top: 1px dashed #cccccc;
+  padding-top: 6px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rc-grand-total {
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #111827;
+  padding-top: 4px;
+  margin-top: 4px;
+}
+.rc-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 9px;
+  color: #6b7280 !important;
+  line-height: 1.3;
+}
+.rc-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.rc-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface2);
+  color: var(--text1);
+  transition: all 0.2s;
+}
+.rc-actions button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+.rc-actions button.primary {
+  background: var(--green);
+  color: #fff;
+  border-color: transparent;
+}
+.rc-actions button.primary:hover {
+  opacity: 0.9;
+}
+.rc-actions button.secondary {
+  background: var(--gold);
+  color: #fff;
+  border-color: transparent;
+}
+.rc-actions button.secondary:hover {
+  opacity: 0.9;
+}
+.rc-actions button.close-btn {
+  grid-column: span 2;
+  background: var(--surface3);
+  border-color: var(--border);
+}
 </style>
 </head>
 <body>
@@ -3654,6 +3827,359 @@ function cancelEdit(){
   S.j_date='';S.j_kg='';S.j_buyer='';S.j_phone='';S.j_disc='';S.j_note='';S.j_manualPrice='';S.j_payStatus='lunas';S.j_cashAccount='1.1.01.01 Kas Tunai';
   renderJual();
 }
+
+// ═══════════════════════════════════════════════
+// STRUK PEMBAYARAN / RECEIPTS
+// ═══════════════════════════════════════════════
+function showReceiptModal(id) {
+  const sale = S.salesEntries.find(e => e.id === id);
+  if (!sale) return;
+
+  document.getElementById('receipt-modal')?.remove();
+
+  const subtotal = sale.kg * sale.pricePerKg;
+  let discText = 'Rp 0';
+  if (sale.discVal > 0) {
+    if (sale.discType === 'pct') {
+      discText = sale.discVal + '%';
+    } else if (sale.discType === 'rp_total') {
+      discText = fRp(sale.discVal) + ' (Total)';
+    } else {
+      discText = fRp(sale.discVal) + '/kg';
+    }
+  }
+
+  const formattedDate = new Date(sale.date).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const receiptId = `TRX-${sale.date.replace(/-/g, '')}-${sale.id.slice(-4)}`;
+  const currentUser = S.currentUser ? S.currentUser.name : 'Operator';
+
+  const modal = document.createElement('div');
+  modal.id = 'receipt-modal';
+  modal.className = 'rc-overlay';
+  modal.innerHTML = `
+    <div class="rc-container">
+      <div class="rc-paper-wrapper">
+        <div class="rc-paper" id="receipt-content">
+          <div class="rc-header">
+            <div class="rc-logo-placeholder">🥚</div>
+            <div class="rc-title">SVARNA FARM</div>
+            <div class="rc-subtitle">Unit Usaha BUM Desa Gemah Ripah</div>
+            <div style="font-size: 8px; color: #6b7280 !important; margin-top: 2px;">Desa Gemah Ripah, Kec. Subur Makmur</div>
+          </div>
+          
+          <div class="rc-divider"></div>
+          
+          <div class="rc-grid">
+            <div class="rc-row">
+              <span class="rc-label">No. Struk:</span>
+              <span class="rc-value">${receiptId}</span>
+            </div>
+            <div class="rc-row">
+              <span class="rc-label">Tanggal:</span>
+              <span class="rc-value">${formattedDate}</span>
+            </div>
+            <div class="rc-row">
+              <span class="rc-label">Kasir:</span>
+              <span class="rc-value">${currentUser}</span>
+            </div>
+            <div class="rc-row">
+              <span class="rc-label">Pelanggan:</span>
+              <span class="rc-value">${sale.buyer || '(Tanpa Nama)'}</span>
+            </div>
+            ${sale.buyerPhone ? `
+            <div class="rc-row">
+              <span class="rc-label">Kontak:</span>
+              <span class="rc-value">${sale.buyerPhone}</span>
+            </div>` : ''}
+          </div>
+          
+          <div class="rc-divider"></div>
+          
+          <!-- Items Table -->
+          <div class="rc-tbl-header">
+            <div class="rc-row">
+              <span>Item / Deskripsi</span>
+              <span>Total</span>
+            </div>
+          </div>
+          <div class="rc-tbl-row">
+            <div class="rc-row" style="font-weight: 600;">
+              <span>${sale.item || 'Telur'} (${sale.type === 'grosir' ? 'Grosir' : sale.type === 'eceran' ? 'Eceran' : 'Manual'})</span>
+              <span>${fRp(subtotal)}</span>
+            </div>
+            <div style="font-size: 10px; color: #6b7280 !important; margin-top: 2px;">
+              ${sale.kg.toFixed(1)} kg × ${fRp(sale.pricePerKg)}
+            </div>
+          </div>
+          
+          <div class="rc-total-section">
+            <div class="rc-row">
+              <span class="rc-label">Subtotal:</span>
+              <span class="rc-value">${fRp(subtotal)}</span>
+            </div>
+            <div class="rc-row">
+              <span class="rc-label">Diskon:</span>
+              <span class="rc-value" style="color: #ef4444 !important;">-${discText}</span>
+            </div>
+            <div class="rc-grand-total">
+              <span>TOTAL BAYAR:</span>
+              <span>${fRp(sale.total)}</span>
+            </div>
+          </div>
+          
+          <div class="rc-divider"></div>
+          
+          <div class="rc-grid" style="margin-top: 6px;">
+            <div class="rc-row">
+              <span class="rc-label">Status:</span>
+              <span class="rc-value" style="font-weight: 700; color: ${sale.payStatus === 'belum' ? '#f59e0b' : '#10b981'} !important;">
+                ${sale.payStatus === 'belum' ? 'BELUM LUNAS' : 'LUNAS'}
+              </span>
+            </div>
+            ${sale.payStatus === 'lunas' && sale.payCashAccount ? `
+            <div class="rc-row">
+              <span class="rc-label">Metode:</span>
+              <span class="rc-value">${sale.payCashAccount.split(' ').slice(1).join(' ')}</span>
+            </div>` : ''}
+            ${sale.note ? `
+            <div class="rc-row">
+              <span class="rc-label">Catatan:</span>
+              <span class="rc-value" style="font-style: italic;">"${sale.note}"</span>
+            </div>` : ''}
+          </div>
+          
+          <div class="rc-divider"></div>
+          
+          <div class="rc-footer">
+            <div>Terima kasih atas pembelian Anda</div>
+            <div style="font-weight: 700; margin-top: 4px; color: #C4960C !important;">Dukung BUM Desa, Majukan Ekonomi Desa</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="rc-actions">
+        <button class="primary" onclick="downloadReceiptPNG('${sale.id}')">
+          <i data-lucide="image" style="width:14px; height:14px;"></i> PNG
+        </button>
+        <button class="primary" onclick="downloadReceiptPDF('${sale.id}')">
+          <i data-lucide="file-text" style="width:14px; height:14px;"></i> PDF
+        </button>
+        <button class="secondary" onclick="shareReceiptWA('${sale.id}')">
+          <i data-lucide="phone" style="width:14px; height:14px;"></i> WhatsApp
+        </button>
+        <button class="secondary" onclick="shareReceiptNative('${sale.id}')">
+          <i data-lucide="share-2" style="width:14px; height:14px;"></i> Share
+        </button>
+        <button class="close-btn" onclick="document.getElementById('receipt-modal').remove()">
+          Tutup
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons();
+}
+
+function downloadReceiptPNG(id) {
+  const paper = document.getElementById('receipt-content');
+  if (!paper) return;
+
+  html2canvas(paper, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `Struk_BUMDesa_${id}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => {
+    console.error("Error generating PNG receipt:", err);
+    alert("Gagal mengunduh PNG. Silakan coba lagi.");
+  });
+}
+
+function downloadReceiptPDF(id) {
+  const paper = document.getElementById('receipt-content');
+  if (!paper) return;
+
+  html2canvas(paper, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true
+  }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = 105;
+    const pageHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [imgWidth, pageHeight]
+    });
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
+    pdf.save(`Struk_BUMDesa_${id}.pdf`);
+  }).catch(err => {
+    console.error("Error generating PDF receipt:", err);
+    alert("Gagal mengunduh PDF. Silakan coba lagi.");
+  });
+}
+
+function shareReceiptWA(id) {
+  const sale = S.salesEntries.find(e => e.id === id);
+  if (!sale) return;
+
+  const receiptId = `TRX-${sale.date.replace(/-/g, '')}-${sale.id.slice(-4)}`;
+  const formattedDate = new Date(sale.date).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  let text = `*STRUK PEMBAYARAN SVARNA FARM*\n`;
+  text += `=========================\n`;
+  text += `No. Struk : ${receiptId}\n`;
+  text += `Tanggal   : ${formattedDate}\n`;
+  text += `Pelanggan : ${sale.buyer || '(Tanpa Nama)'}\n`;
+  text += `=========================\n`;
+  text += `*Detail Produk:*\n`;
+  text += `- ${sale.item || 'Telur'} (${sale.type === 'grosir' ? 'Grosir' : sale.type === 'eceran' ? 'Eceran' : 'Manual'})\n`;
+  text += `  ${sale.kg.toFixed(1)} kg x ${fRp(sale.pricePerKg)}\n`;
+  
+  const subtotal = sale.kg * sale.pricePerKg;
+  let discText = 'Rp 0';
+  if (sale.discVal > 0) {
+    if (sale.discType === 'pct') discText = sale.discVal + '%';
+    else if (sale.discType === 'rp_total') discText = fRp(sale.discVal);
+    else discText = fRp(sale.discVal) + '/kg';
+  }
+  
+  text += `  Subtotal  : ${fRp(subtotal)}\n`;
+  text += `  Diskon    : -${discText}\n`;
+  text += `-------------------------\n`;
+  text += `*TOTAL BAYAR : ${fRp(sale.total)}*\n`;
+  text += `=========================\n`;
+  text += `Status    : *${sale.payStatus === 'belum' ? '⚠️ BELUM LUNAS' : '✅ LUNAS'}*\n`;
+  if (sale.payStatus === 'lunas' && sale.payCashAccount) {
+    text += `Metode    : ${sale.payCashAccount.split(' ').slice(1).join(' ')}\n`;
+  }
+  if (sale.note) {
+    text += `Catatan   : "${sale.note}"\n`;
+  }
+  text += `=========================\n`;
+  text += `Dukung BUM Desa Gemah Ripah, Majukan Ekonomi Desa Kita! 🙏✨`;
+
+  const encodedText = encodeURIComponent(text);
+  
+  let phone = sale.buyerPhone || '';
+  if (phone) {
+    phone = phone.replace(/\D/g, '');
+    if (phone.startsWith('0')) {
+      phone = '62' + phone.substring(1);
+    }
+  }
+
+  const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
+  window.open(waUrl, '_blank');
+}
+
+function shareReceiptNative(id) {
+  const sale = S.salesEntries.find(e => e.id === id);
+  if (!sale) return;
+
+  const paper = document.getElementById('receipt-content');
+  if (!paper) return;
+
+  const receiptId = `TRX-${sale.date.replace(/-/g, '')}-${sale.id.slice(-4)}`;
+  const formattedDate = new Date(sale.date).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  let text = `STRUK PEMBAYARAN SVARNA FARM\n`;
+  text += `=========================\n`;
+  text += `No. Struk : ${receiptId}\n`;
+  text += `Tanggal   : ${formattedDate}\n`;
+  text += `Pelanggan : ${sale.buyer || '(Tanpa Nama)'}\n`;
+  text += `=========================\n`;
+  text += `Item: ${sale.item || 'Telur'} (${sale.type === 'grosir' ? 'Grosir' : 'Eceran'})\n`;
+  text += `Qty : ${sale.kg.toFixed(1)} kg\n`;
+  text += `Total Bayar: ${fRp(sale.total)}\n`;
+  text += `Status: ${sale.payStatus === 'belum' ? 'BELUM LUNAS' : 'LUNAS'}\n`;
+  text += `=========================\n`;
+  text += `BUM Desa Gemah Ripah`;
+
+  html2canvas(paper, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true
+  }).then(canvas => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], `Struk_BUMDesa_${id}.png`, { type: 'image/png' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: 'Struk Pembayaran Svarna Farm',
+          text: `Struk Pembayaran BUM Desa - ${sale.buyer || 'Pelanggan'}`
+        }).catch(err => {
+          console.warn("Share was cancelled or failed:", err);
+        });
+      } else if (navigator.share) {
+        navigator.share({
+          title: 'Struk Pembayaran Svarna Farm',
+          text: text
+        }).catch(err => {
+          console.warn("Share text cancelled:", err);
+        });
+      } else {
+        copyTextToClipboard(text);
+      }
+    }, 'image/png');
+  }).catch(err => {
+    console.error("html2canvas failed in shareReceiptNative:", err);
+    copyTextToClipboard(text);
+  });
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("📋 Rincian struk telah disalin ke clipboard!");
+    }).catch(err => {
+      console.error("Gagal menyalin ke clipboard:", err);
+      fallbackCopyText(text);
+    });
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    alert("📋 Rincian struk telah disalin ke clipboard!");
+  } catch (err) {
+    console.error("Fallback copy failed:", err);
+    alert("Gagal menyalin rincian struk.");
+  }
+  document.body.removeChild(textArea);
+}
 function addPurchase(o){
   if (isPeriodLocked(o.date)) {
     alert("⚠️ Transaksi gagal: Periode sudah dikunci (Tutup Buku).");
@@ -5552,7 +6078,7 @@ function renderJual(){
           </div>
         ` : `
           <div class="tbl-w" style="border:none; border-radius:0;"><table>
-            <thead><tr><th>Tgl</th><th>Produk</th><th>Qty</th><th>Harga</th><th>Diskon</th><th>Total</th><th>Status</th>${canEditDelete?'<th></th>':''}</tr></thead>
+            <thead><tr><th>Tgl</th><th>Produk</th><th>Qty</th><th>Harga</th><th>Diskon</th><th>Total</th><th>Status</th><th>Struk</th>${canEditDelete?'<th></th>':''}</tr></thead>
             <tbody>${[...filteredEntries].reverse().map(e=>{
               const isTelurRow=!e.item||e.item==='Telur';
               const typeClr=e.type==='grosir'?'color:var(--gold);background:var(--bg-gold)':'color:var(--green);background:var(--bg-green)';
@@ -5575,11 +6101,16 @@ function renderJual(){
                       ${e.payStatus==='belum' ? fI('⏳') + ' Belum' : fI('✓') + ' Lunas'}
                     </span>
                   ` : `
-                    <button onclick="togglePayStatus('${e.id}')" style="border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:${e.payStatus==='belum'?'var(--bg-amber)':'var(--bg-green)'};color:${e.payStatus==='belum'?'var(--amber)':'var(--green)'}">
+                     <button onclick="togglePayStatus('${e.id}')" style="border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:${e.payStatus==='belum'?'var(--bg-amber)':'var(--bg-green)'};color:${e.payStatus==='belum'?'var(--amber)':'var(--green)'}">
                       ${e.payStatus==='belum' ? fI('⏳') + ' Belum' : fI('✓') + ' Lunas'}
                     </button>
                   `}
                   ${e.payStatus === 'lunas' && e.payCashAccount ? `<div style="font-size:9px;color:var(--text3);margin-top:3px">${e.payCashAccount.split(' ').slice(1).join(' ')} ${e.payDate && e.payDate !== e.date ? `(${fmtD(e.payDate)})` : ''}</div>` : ''}
+                </td>
+                <td>
+                  <button onclick="showReceiptModal('${e.id}')" style="border:none;background:var(--surface3);color:var(--gold);border-radius:6px;padding:4px 6px;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;" title="Lihat Struk">
+                    ${fI('🧾')} Struk
+                  </button>
                 </td>
                 ${canEditDelete ? `
                   <td style="white-space:nowrap">
