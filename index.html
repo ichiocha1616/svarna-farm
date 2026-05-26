@@ -1434,6 +1434,22 @@ body.dark .kpi-card-exec:hover{
   background: var(--surface3);
   border-color: var(--border);
 }
+
+/* Compact Tables on Mobile */
+@media (max-width: 600px) {
+  th {
+    padding: 8px 10px !important;
+    font-size: 8px !important;
+    letter-spacing: 0.5px !important;
+  }
+  td {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+  }
+  .td-d {
+    font-size: 10px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -3384,6 +3400,7 @@ async function loadFromCloud(){
       }
     }
 
+    normalizeSalesData();
     LS.save();
     
     S.lastSaved = new Date();
@@ -3522,8 +3539,24 @@ const LS={
     if (savedTime) S.lastSaved = new Date(savedTime);
     
     if(!S.b_cat&&S.customCats.length) S.b_cat=S.customCats[0].id;
+    normalizeSalesData();
   }
 };
+
+function normalizeSalesData() {
+  let updated = false;
+  if (Array.isArray(S.salesEntries)) {
+    S.salesEntries.forEach(s => {
+      if (s.payStatus === undefined || s.payStatus === null || s.payStatus === '') {
+        s.payStatus = 'lunas';
+        if (!s.payCashAccount) s.payCashAccount = s.cashAccount || '1.1.01.01 Kas Tunai';
+        if (!s.payDate) s.payDate = s.date;
+        updated = true;
+      }
+    });
+  }
+  return updated;
+}
 
 
 // ═══════════════════════════════════════════════
