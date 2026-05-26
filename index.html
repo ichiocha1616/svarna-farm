@@ -2920,7 +2920,7 @@ function getDoubleEntriesForMonth(selectedMonth) {
     const oco = S.coaMappings || {};
     if (t.type === 'cash_sale') {
       const cashAcct = t.cashAccount;
-      const salesAcct = t.item === 'Telur'
+      const salesAcct = (t.item === 'Telur' || !t.item)
         ? (oco.pendapatanTelur || '4.2.01.01 Pendapatan Penjualan Telur')
         : (oco.pendapatanAyam || '4.2.01.09 Pendapatan Penjualan Ayam');
       const ket = `Penjualan ${t.item} - ${t.buyer}` + (t.kg ? ` (${t.kg} kg)` : '');
@@ -2952,7 +2952,7 @@ function getDoubleEntriesForMonth(selectedMonth) {
       });
     } else if (t.type === 'tempo_sale') {
       const piutangAcct = oco.piutangUsaha || '1.1.03.01 Piutang Usaha';
-      const salesAcct = t.item === 'Telur'
+      const salesAcct = (t.item === 'Telur' || !t.item)
         ? (oco.pendapatanTelur || '4.2.01.01 Pendapatan Penjualan Telur')
         : (oco.pendapatanAyam || '4.2.01.09 Pendapatan Penjualan Ayam');
       const subledger = (S.buyerMappings && S.buyerMappings[t.buyer]) || '';
@@ -3866,15 +3866,15 @@ function showReceiptModal(id) {
       <div class="rc-paper-wrapper">
         <div class="rc-paper" id="receipt-content">
           <div class="rc-header">
-            <div class="rc-logo-placeholder">🥚</div>
+            <img src="logo svarna farm.png" style="width: 52px; height: 52px; object-fit: contain; margin-bottom: 6px; display: inline-block;" alt="Logo Svarna Farm">
             <div class="rc-title">SVARNA FARM</div>
             <div class="rc-subtitle">Unit Usaha BUM Desa Gemah Ripah</div>
-            <div style="font-size: 8px; color: #6b7280 !important; margin-top: 2px;">Desa Gemah Ripah, Kec. Subur Makmur</div>
+            <div style="font-size: 7.2px; line-height: 1.3; color: #6b7280 !important; margin-top: 2px; max-width: 260px; margin-left: auto; margin-right: auto;">Jl. Merakurak-Montong RT 004 / RW 005 Dusun Kedungsari, Desa Tuwiri Wetan, Kecamatan Merakurak, Kabupaten Tuban 62355</div>
           </div>
           
           <div class="rc-divider"></div>
           
-          <div class="rc-grid">
+          <div class="rc-grid" style="font-size: 9px;">
             <div class="rc-row">
               <span class="rc-label">No. Struk:</span>
               <span class="rc-value">${receiptId}</span>
@@ -3887,15 +3887,6 @@ function showReceiptModal(id) {
               <span class="rc-label">Kasir:</span>
               <span class="rc-value">${currentUser}</span>
             </div>
-            <div class="rc-row">
-              <span class="rc-label">Pelanggan:</span>
-              <span class="rc-value">${sale.buyer || '(Tanpa Nama)'}</span>
-            </div>
-            ${sale.buyerPhone ? `
-            <div class="rc-row">
-              <span class="rc-label">Kontak:</span>
-              <span class="rc-value">${sale.buyerPhone}</span>
-            </div>` : ''}
           </div>
           
           <div class="rc-divider"></div>
@@ -4423,7 +4414,7 @@ function renderLog(){
   const prodButir = layakJualButir + rusakButir;
   const prodKg = layakJualKg + rusakKg;
 
-  const salesTelur = S.salesEntries.filter(e => !e.deleted && e.item === 'Telur');
+  const salesTelur = S.salesEntries.filter(e => !e.deleted && (e.item === 'Telur' || !e.item));
   const terjualKg = salesTelur.reduce((s, e) => s + num(e.kg), 0);
   const avgGoodWeight = layakJualButir > 0 ? (layakJualKg / layakJualButir) : 0;
   const terjualButir = avgGoodWeight > 0 ? Math.round(terjualKg / avgGoodWeight) : 0;
@@ -5471,7 +5462,7 @@ function renderSvarna() {
   const prodButir = layakJualButir + rusakButir;
   const prodKg = layakJualKg + rusakKg;
 
-  const salesTelur = S.salesEntries.filter(e => !e.deleted && e.item === 'Telur');
+  const salesTelur = S.salesEntries.filter(e => !e.deleted && (e.item === 'Telur' || !e.item));
   const terjualKg = salesTelur.reduce((s, e) => s + num(e.kg), 0);
   const avgGoodWeight = layakJualButir > 0 ? (layakJualKg / layakJualButir) : 0;
   const terjualButir = avgGoodWeight > 0 ? Math.round(terjualKg / avgGoodWeight) : 0;
