@@ -1624,6 +1624,7 @@ body.dark .kpi-card-exec:hover{
     <div class="nav-lbl">Data</div>
     <div class="nav-row" onclick="exportJSON()"><div class="nav-link"><i data-lucide="download" class="nav-icon-lucide"></i>Export JSON</div></div>
     <div class="nav-row" onclick="importJSON()"><div class="nav-link"><i data-lucide="upload" class="nav-icon-lucide"></i>Import JSON</div></div>
+    <div class="nav-row" id="nr-db" onclick="nav('db')"><div class="nav-link" style="color:var(--gold)"><i data-lucide="database" class="nav-icon-lucide" style="color:var(--gold)"></i>Audit & Sync DB</div></div>
   </div>
 
   <div class="nav-div" id="nav-div-logout"></div>
@@ -2198,6 +2199,15 @@ function updateSidebarVisibility() {
     }
     elAbsensi.parentElement.style.display = showAbsensi ? 'block' : 'none';
   }
+
+  const elData = document.getElementById('ns-data');
+  if (elData) {
+    elData.style.display = showData ? 'block' : 'none';
+  }
+  const elDb = document.getElementById('nr-db');
+  if (elDb) {
+    elDb.style.display = showData ? 'flex' : 'none';
+  }
 }
 
 function updateHeader() {
@@ -2254,6 +2264,9 @@ function updateHeader() {
     } else if (S.tab === 'analitik') {
       path = 'Analisis';
       detail = S.section === 'charts' ? 'Grafik Performa' : S.section === 'fcr' ? 'FCR & Mortalitas' : 'Overview Analitik';
+    } else if (S.tab === 'db') {
+      path = 'Data';
+      detail = 'Audit & Sinkronisasi DB';
     }
     
     breadcrumbsEl.innerHTML = `
@@ -3732,7 +3745,7 @@ function nav(tab,section=''){
   }
   S.tab=tab; S.section=section;
   // update active states
-  ['hub','svarna','log','harga','jual','beli','analitik','absensi'].forEach(t=>{
+  ['hub','svarna','log','harga','jual','beli','analitik','absensi','db'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active', t===tab&&!section);
   });
   ['jual-catat','jual-hist','jual-piutang','beli-catat','beli-hist','analitik-overview','analitik-charts','analitik-fcr'].forEach(k=>{
@@ -7689,6 +7702,233 @@ function renderAbsensi() {
   document.getElementById('content').innerHTML = h;
 }
 
+// ═══════════════════════════════════════════════
+// RENDER: DATABASE MANAGEMENT & SYNC TROUBLESHOOTING
+// ═══════════════════════════════════════════════
+function renderDBManagement() {
+  const localSalesCount = (S.salesEntries || []).filter(e => !e.deleted).length;
+  const localLogsCount = (S.logEntries || []).length;
+  const localPurchasesCount = (S.purchaseEntries || []).filter(e => !e.deleted).length;
+  const localAttendanceCount = (S.attendanceLogs || []).length;
+
+  let h = `
+    <div class="hub-header fade-in">
+      <div style="flex:1">
+        <h2 style="margin:0; font-size:22px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:12px;">
+          <span style="background:var(--gold); color:#fff; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:16px;">${fI('🟢')}</span>
+          Audit & Sinkronisasi Database
+        </h2>
+        <p style="margin:4px 0 0 0; color:var(--text-secondary); font-size:13px;">Utilitas untuk mendeteksi selisih data lokal dan melakukan sinkronisasi dengan cloud.</p>
+      </div>
+    </div>
+
+    <div class="card fade-in" style="margin-top:20px; border-radius:16px; padding:20px;">
+      <h3 style="margin-top:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+        ${fI('📋')} Ringkasan Data di Perangkat Ini
+      </h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-top:15px;">
+        <div style="background:var(--surface2); padding:12px; border-radius:12px; border:1px solid var(--border-subtle);">
+          <div style="font-size:11px; color:var(--text-secondary);">Log Produksi</div>
+          <div style="font-size:18px; font-weight:800; color:var(--text-primary); margin-top:4px;">${localLogsCount} <span style="font-size:11px; font-weight:400; color:var(--text-secondary);">entri</span></div>
+        </div>
+        <div style="background:var(--surface2); padding:12px; border-radius:12px; border:1px solid var(--border-subtle);">
+          <div style="font-size:11px; color:var(--text-secondary);">Transaksi Jual</div>
+          <div style="font-size:18px; font-weight:800; color:var(--gold); margin-top:4px;">${localSalesCount} <span style="font-size:11px; font-weight:400; color:var(--text-secondary);">aktif</span></div>
+        </div>
+        <div style="background:var(--surface2); padding:12px; border-radius:12px; border:1px solid var(--border-subtle);">
+          <div style="font-size:11px; color:var(--text-secondary);">Transaksi Beli</div>
+          <div style="font-size:18px; font-weight:800; color:var(--text-primary); margin-top:4px;">${localPurchasesCount} <span style="font-size:11px; font-weight:400; color:var(--text-secondary);">aktif</span></div>
+        </div>
+        <div style="background:var(--surface2); padding:12px; border-radius:12px; border:1px solid var(--border-subtle);">
+          <div style="font-size:11px; color:var(--text-secondary);">Log Absensi</div>
+          <div style="font-size:18px; font-weight:800; color:var(--text-primary); margin-top:4px;">${localAttendanceCount} <span style="font-size:11px; font-weight:400; color:var(--text-secondary);">entri</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fade-in" style="margin-top:20px; border-radius:16px; padding:20px;">
+      <h3 style="margin-top:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+        ${fI('⚙️')} Tindakan Sinkronisasi & Troubleshooting
+      </h3>
+      <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:15px;">
+        Jika Anda melihat perbedaan data di layar HP/Laptop ini dibandingkan dengan perangkat lain, gunakan opsi di bawah ini untuk menyelaraskannya kembali.
+      </p>
+      
+      <div style="display:flex; flex-wrap:wrap; gap:12px;">
+        <button class="btn btn-g" style="display:flex; align-items:center; gap:6px; font-weight:600; padding:10px 16px; border-radius:10px; cursor:pointer;" onclick="forceSyncCleanFromCloud()">
+          ${fI('⏳')} 📥 Bersihkan Cache & Sinkron Ulang
+        </button>
+        <button class="btn" style="display:flex; align-items:center; gap:6px; font-weight:600; padding:10px 16px; border-radius:10px; background:var(--surface3); border:1px solid var(--border); color:var(--text1); cursor:pointer;" onclick="forceUploadStateToCloud()">
+          ${fI('📤')} 📤 Unggah Paksa Data Lokal
+        </button>
+        <button class="btn" style="display:flex; align-items:center; gap:6px; font-weight:600; padding:10px 16px; border-radius:10px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:var(--green); cursor:pointer;" onclick="auditLocalDatabase()">
+          ${fI('✓')} 🔍 Audit Transaksi Lokal Saja
+        </button>
+      </div>
+
+      <div id="audit-results" style="margin-top:20px;">
+        <div style="color:var(--text-secondary); font-size:12px; text-align:center; padding:15px; border:1px dashed var(--border); border-radius:10px;">
+          Klik tombol "Audit Transaksi Lokal Saja" untuk memindai perbedaan data dengan Cloud Firestore secara real-time.
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('content').innerHTML = h;
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+async function forceSyncCleanFromCloud() {
+  const confirmProceed = confirm("⚠️ PERINGATAN KRITIS: Tindakan ini akan menghapus cache lokal (Log Produksi, Penjualan, Pembelian, dll) di perangkat ini dan mendownload ulang data dari Firestore Cloud.\n\nData yang ada di cloud tidak akan terpengaruh. Pastikan Anda memiliki koneksi internet yang stabil. Lanjutkan?");
+  if (!confirmProceed) return;
+  
+  try {
+    S.saving = true;
+    updateCloudUI();
+    
+    // Reset local state variables
+    S.logEntries = [];
+    S.priceHistory = [];
+    S.salesEntries = [];
+    S.purchaseEntries = [];
+    S.auditLogs = [];
+    S.attendanceLogs = [];
+    
+    // Clear localStorage values
+    localStorage.removeItem('sf-log');
+    localStorage.removeItem('sf-price');
+    localStorage.removeItem('sf-sales');
+    localStorage.removeItem('sf-beli');
+    localStorage.removeItem('sf-audit');
+    localStorage.removeItem('sf-attendance');
+    localStorage.removeItem('sf-last-saved');
+    
+    // Load from Firestore
+    await loadFromCloud();
+    render();
+    alert("✓ Sukses: Cache lokal telah dihapus dan disinkronkan ulang sepenuhnya dari Cloud!");
+  } catch(e) {
+    console.error("Force clean sync failed:", e);
+    alert("❌ Gagal: Terjadi kesalahan saat mengunduh data dari Cloud: " + e.message);
+  } finally {
+    S.saving = false;
+    updateCloudUI();
+  }
+}
+
+async function forceUploadStateToCloud() {
+  const confirmProceed = confirm("⚠️ Apakah Anda yakin? Tindakan ini akan memaksa mengunggah semua transaksi lokal di perangkat ini ke Cloud Database. Gunakan hanya jika Anda yakin data lokal ini valid dan belum terunggah.");
+  if (!confirmProceed) return;
+  
+  try {
+    await uploadStateToCloud();
+    render();
+    alert("✓ Sukses: Data lokal berhasil dipaksa unggah ke Cloud!");
+  } catch(e) {
+    console.error("Force upload state failed:", e);
+    alert("❌ Gagal unggah: " + e.message);
+  }
+}
+
+async function auditLocalDatabase() {
+  const container = document.getElementById('audit-results');
+  if (!container) return;
+  
+  if (!db) {
+    container.innerHTML = `<div style="color:var(--red);font-size:12px;padding:10px;border:1px solid rgba(224,85,85,0.2);border-radius:10px;background:rgba(224,85,85,0.08)">
+      ⚠️ Koneksi Database Offline: Tidak terhubung ke Firestore Cloud.
+    </div>`;
+    return;
+  }
+  
+  container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary)">
+    ⏳ Memindai database Cloud Firestore... Mohon tunggu...
+  </div>`;
+  
+  try {
+    // Fetch all active transaction IDs from Cloud Firestore
+    const salesSnap = await db.collection('salesEntries').get();
+    const cloudSalesIds = new Set();
+    salesSnap.forEach(doc => {
+      cloudSalesIds.add(doc.id);
+    });
+    
+    // Find local sales that do not exist in the Cloud
+    const unsyncedSales = S.salesEntries.filter(s => !s.deleted && !cloudSalesIds.has(s.id));
+    
+    if (unsyncedSales.length === 0) {
+      container.innerHTML = `
+        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:15px; text-align:center; color:var(--green); font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
+          ${fI('✓')} Semua transaksi penjualan lokal Anda 100% cocok dengan Cloud Database.
+        </div>
+      `;
+    } else {
+      let tblRows = '';
+      unsyncedSales.forEach(s => {
+        tblRows += `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 8px; font-weight:600; color:var(--text-primary);">${s.date}</td>
+            <td style="padding:10px 8px; color:var(--text-secondary);">${s.buyer || 'Tanpa Nama'}</td>
+            <td style="padding:10px 8px; color:var(--gold); font-weight:600;">${s.kg} kg</td>
+            <td style="padding:10px 8px; color:var(--text-primary); font-weight:600;">${fRp(s.total)}</td>
+            <td style="padding:10px 8px;">
+              <button class="btn" style="background:rgba(224,85,85,0.08); color:var(--red); border:1px solid rgba(224,85,85,0.2); padding:4px 8px; font-size:10px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="deleteUnsyncedSale('${s.id}')">
+                Hapus Lokal
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      container.innerHTML = `
+        <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:12px; padding:15px; margin-bottom:15px;">
+          <div style="color:var(--amber); font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            ${fI('⚠️')} Deteksi Selisih: Ditemukan ${unsyncedSales.length} transaksi lokal yang tidak tercatat di Cloud
+          </div>
+          <p style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin:0 0 12px 0;">
+            Transaksi di bawah ini ada di memori perangkat ini tetapi tidak ada di database Cloud Firestore. Ini biasanya terjadi jika transaksi diinput saat koneksi terputus atau telah dihapus di perangkat lain. Anda dapat menghapus data lokal ini agar sama dengan database cloud.
+          </p>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1.5px solid var(--border); color:var(--text-secondary);">
+                  <th style="padding:8px;">Tanggal</th>
+                  <th style="padding:8px;">Pembeli</th>
+                  <th style="padding:8px;">Berat</th>
+                  <th style="padding:8px;">Total</th>
+                  <th style="padding:8px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tblRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    if (window.lucide) lucide.createIcons();
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--red);font-size:12px;padding:10px;border:1px solid rgba(224,85,85,0.2);border-radius:10px;background:rgba(224,85,85,0.08)">
+      ❌ Gagal memindai database: ${e.message}
+    </div>`;
+  }
+}
+
+function deleteUnsyncedSale(id) {
+  const sale = S.salesEntries.find(e => e.id === id);
+  if (!sale) return;
+  
+  const confirmProceed = confirm(`Hapus transaksi lokal ini?\n\nTanggal: ${sale.date}\nPembeli: ${sale.buyer || 'Tanpa Nama'}\nBerat: ${sale.kg} kg\nTotal: ${fRp(sale.total)}\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
+  if (!confirmProceed) return;
+  
+  S.salesEntries = S.salesEntries.filter(e => e.id !== id);
+  LS.save();
+  auditLocalDatabase();
+}
+
 function render(){
   if (!S.currentUser) {
     renderLogin();
@@ -7737,9 +7977,10 @@ function render(){
   if(S.tab==='absensi')  renderAbsensi();
   if(S.tab==='jual')     renderJual();
   if(S.tab==='beli')     renderBeli();
+  if(S.tab==='db')       renderDBManagement();
   
   // update sidebar active
-  ['hub','svarna','log','harga','jual','beli','analitik','absensi'].forEach(t=>{
+  ['hub','svarna','log','harga','jual','beli','analitik','absensi','db'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active',t===S.tab&&!S.section);
   });
   updateCloudUI();
