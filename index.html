@@ -3661,6 +3661,8 @@ const LS={
       localStorage.setItem('sf-flock',      JSON.stringify(S.flock));
       localStorage.setItem('sf-spreadG',    S.spreadG.toString());
       localStorage.setItem('sf-spreadE',    S.spreadE.toString());
+      localStorage.setItem('sf-active-tab', S.tab || 'log');
+      localStorage.setItem('sf-active-section', S.section || '');
     }catch(e){console.warn('LS save:',e)}
   },
   load(){
@@ -3684,6 +3686,21 @@ const LS={
     try{const sg=localStorage.getItem('sf-spreadG');if(sg!==null&&sg!==undefined)S.spreadG=num(sg, 500);}catch(_){}
     try{const se=localStorage.getItem('sf-spreadE');if(se!==null&&se!==undefined)S.spreadE=num(se, 1500);}catch(_){}
     S.dark = localStorage.getItem('sf-dark-v2') === '1';
+    
+    try {
+      const activeTab = localStorage.getItem('sf-active-tab');
+      const activeSec = localStorage.getItem('sf-active-section') || '';
+      if (activeTab) {
+        const role = S.currentUser ? S.currentUser.role : 'operator';
+        if (role === 'operator' && activeTab !== 'log') {
+          S.tab = 'log';
+          S.section = '';
+        } else {
+          S.tab = activeTab;
+          S.section = activeSec;
+        }
+      }
+    } catch (_) {}
     
     if (Array.isArray(S.logEntries)) S.logEntries.sort((a,b)=>a.date.localeCompare(b.date));
     if (Array.isArray(S.priceHistory)) S.priceHistory.sort((a,b)=>a.date.localeCompare(b.date));
@@ -3778,6 +3795,7 @@ function nav(tab,section=''){
     }
   }
   S.tab=tab; S.section=section;
+  LS.save();
   // update active states
   ['hub','svarna','log','harga','jual','beli','analitik','absensi','db'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active', t===tab&&!section);
