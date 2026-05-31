@@ -1588,6 +1588,8 @@ body.dark .kpi-card-exec:hover{
       <div class="nav-sub-item" id="nsi-jual-catat" onclick="nav('jual','catat')"><i data-lucide="pen-tool" style="width:12px;height:12px;margin-right:6px;"></i> Catat Penjualan</div>
       <div class="nav-sub-item" id="nsi-jual-hist"  onclick="nav('jual','hist')"><i data-lucide="history" style="width:12px;height:12px;margin-right:6px;"></i> Riwayat</div>
       <div class="nav-sub-item" id="nsi-jual-piutang" onclick="nav('jual','piutang')"><i data-lucide="file-warning" style="width:12px;height:12px;margin-right:6px;"></i> Piutang Usaha</div>
+      <div class="nav-sub-item" id="nsi-jual-intel" onclick="nav('jual','intel')"><i data-lucide="brain" style="width:12px;height:12px;margin-right:6px;"></i> Buyer Intel</div>
+      <div class="nav-sub-item" id="nsi-jual-dist" onclick="nav('jual','dist')"><i data-lucide="git-branch" style="width:12px;height:12px;margin-right:6px;"></i> Strategi Distribusi</div>
     </div>
     <div class="nav-row" id="nr-beli" onclick="navToggle('beli')">
       <div class="nav-link"><i data-lucide="shopping-cart" class="nav-icon-lucide"></i>Pembelian</div>
@@ -1723,6 +1725,14 @@ const S = {
   },
   buyerMappings: {},
   itemMappings: {},
+  buyerConfigs: {},
+  j_pricingTier: 'consumer',
+  bi_search: '',
+  bi_filterCat: 'all',
+  bi_sortBy: 'score',
+  bi_page: 1,
+  bi_perPage: 10,
+  bi_selectedBuyer: '',
   cashAccountsList: [
     '1.1.01.01 Kas Tunai',
     '1.1.01.02 Kas di Bank BSI',
@@ -1868,7 +1878,25 @@ const priceForDate = (d, type) => {
   const e = [...S.priceHistory].reverse().find(h => h.date <= d);
   if (!e) return null;
   const base = num(e.acuan) < FLOOR_PRICE ? FLOOR_PRICE : num(e.acuan);
-  return type === 'grosir' ? base + S.spreadG : base + S.spreadE;
+  const grosirPrice = base + S.spreadG;
+  const eceranPrice = base + S.spreadE;
+  
+  let price = grosirPrice;
+  if (type === 'distributor') {
+    price = base; // Harga Grosir - Spread (which is the acuan price)
+  } else if (type === 'grosir') {
+    price = grosirPrice;
+  } else if (type === 'eceran') {
+    price = eceranPrice;
+  } else if (type === 'event') {
+    price = grosirPrice - 200; // Event price slightly cheaper than retail partner
+  } else {
+    // Fallback if type is manual/other
+    price = base;
+  }
+  
+  // Psychological rounding to nearest 100
+  return Math.round(price / 100) * 100;
 };
 
 const applyDisc = (price, type, val) => {
@@ -2257,7 +2285,7 @@ function updateHeader() {
       detail = 'Kalkulator Harga Acuan';
     } else if (S.tab === 'jual') {
       path = 'Transaksi';
-      detail = S.section === 'piutang' ? 'Piutang Usaha' : S.section === 'hist' ? 'Riwayat Penjualan' : 'Catat Penjualan';
+      detail = S.section === 'piutang' ? 'Piutang Usaha' : S.section === 'hist' ? 'Riwayat Penjualan' : S.section === 'intel' ? 'Buyer Intel' : S.section === 'dist' ? 'Strategi Distribusi' : 'Catat Penjualan';
     } else if (S.tab === 'beli') {
       path = 'Transaksi';
       detail = S.section === 'hist' ? 'Riwayat Pembelian' : 'Catat Pembelian';
@@ -3396,7 +3424,8 @@ async function uploadStateToCloud() {
       lockedPeriods: S.lockedPeriods || [],
       coaMappings: S.coaMappings || {},
       buyerMappings: S.buyerMappings || {},
-      itemMappings: S.itemMappings || {}
+      itemMappings: S.itemMappings || {},
+      buyerConfigs: S.buyerConfigs || {}
     });
 
     if (opCount > 0) {
@@ -3501,6 +3530,9 @@ async function loadFromCloud(){
       }
       if (cData.itemMappings) {
         S.itemMappings = cData.itemMappings;
+      }
+      if (cData.buyerConfigs) {
+        S.buyerConfigs = cData.buyerConfigs;
       }
       if (cData.flock) {
         S.flock = cData.flock;
@@ -3623,6 +3655,7 @@ const LS={
       localStorage.setItem('sf-coa',    JSON.stringify(S.coaMappings));
       localStorage.setItem('sf-buyMap', JSON.stringify(S.buyerMappings));
       localStorage.setItem('sf-itmMap', JSON.stringify(S.itemMappings));
+      localStorage.setItem('sf-buyer-configs', JSON.stringify(S.buyerConfigs || {}));
       localStorage.setItem('sf-opChecklist', JSON.stringify(S.opChecklist || {}));
       localStorage.setItem('sf-minGrosir', JSON.stringify(S.j_grosirMinWeight));
       localStorage.setItem('sf-flock',      JSON.stringify(S.flock));
@@ -3642,6 +3675,7 @@ const LS={
     try{const coa=JSON.parse(localStorage.getItem('sf-coa'));if(coa)S.coaMappings={...S.coaMappings,...coa};}catch(_){}
     try{const bm=JSON.parse(localStorage.getItem('sf-buyMap'));if(bm)S.buyerMappings=bm;}catch(_){}
     try{const im=JSON.parse(localStorage.getItem('sf-itmMap'));if(im)S.itemMappings=im;}catch(_){}
+    try{const bc=JSON.parse(localStorage.getItem('sf-buyer-configs'));if(bc)S.buyerConfigs=bc;}catch(_){}
     try{const ci=JSON.parse(localStorage.getItem('sf-items'));if(ci?.length)S.customItems=ci;}catch(_){}
     try{const cc=JSON.parse(localStorage.getItem('sf-cats'));if(cc?.length)S.customCats=cc;}catch(_){}
     try{S.opChecklist     =JSON.parse(localStorage.getItem('sf-opChecklist')||'{}')}catch(_){}
@@ -3748,7 +3782,7 @@ function nav(tab,section=''){
   ['hub','svarna','log','harga','jual','beli','analitik','absensi','db'].forEach(t=>{
     document.getElementById('nr-'+t)?.classList.toggle('active', t===tab&&!section);
   });
-  ['jual-catat','jual-hist','jual-piutang','beli-catat','beli-hist','analitik-overview','analitik-charts','analitik-fcr'].forEach(k=>{
+  ['jual-catat','jual-hist','jual-piutang','jual-intel','jual-dist','beli-catat','beli-hist','analitik-overview','analitik-charts','analitik-fcr'].forEach(k=>{
     document.getElementById('nsi-'+k)?.classList.toggle('active', k===tab+'-'+section);
   });
   closeSidebar(); render();
@@ -3923,11 +3957,16 @@ function showPelunasanModal(id) {
         <label>Tanggal Pelunasan</label>
         <input type="date" id="p_payDate" class="inp" value="${today()}">
       </div>
-      <div class="field" style="margin-bottom:20px">
+      <div class="field" style="margin-bottom:12px">
         <label>Akun Kas / Bank Penerima</label>
         <select id="p_payCashAccount" class="inp">
           ${S.cashAccountsList.map(acc => `<option value="${acc}" ${S.j_cashAccount===acc?'selected':''}>${acc}</option>`).join('')}
         </select>
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label>Diskon Pelunasan / Pembulatan (Rp)</label>
+        <input type="number" id="p_discount" class="inp" placeholder="0" value="0" min="0" oninput="updPelunasanNet(${sale.total})">
+        <div id="p_net_display" style="margin-top:8px; font-size:12px; font-weight:700; color:var(--green);">Kas Bersih Diterima: ${fRp(sale.total)}</div>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button class="btn btn-sm" style="background:var(--surface3);color:var(--text1);border:1px solid var(--border)" onclick="document.getElementById('pelunasan-modal').remove()">Batal</button>
@@ -3938,15 +3977,28 @@ function showPelunasanModal(id) {
   document.body.appendChild(modal);
 }
 
+window.updPelunasanNet = function(originalTotal) {
+  const discInput = document.getElementById('p_discount');
+  const discount = Math.max(0, parseInt(discInput.value) || 0);
+  const net = Math.max(0, originalTotal - discount);
+  document.getElementById('p_net_display').innerHTML = `Kas Bersih Diterima: <span style="font-family:var(--font-mono); font-weight:800;">${fRp(net)}</span>`;
+};
+
 function submitPelunasan(id) {
   const sale = S.salesEntries.find(e=>e.id===id);
   if(!sale) return;
   const payDate = document.getElementById('p_payDate').value || today();
   const payCashAccount = document.getElementById('p_payCashAccount').value || '1.1.01.01 Kas Tunai';
+  const discount = Math.max(0, parseInt(document.getElementById('p_discount').value) || 0);
   
   if (isPeriodLocked(payDate)) {
     alert("⚠️ Pelunasan gagal: Periode tanggal pelunasan sudah dikunci (Tutup Buku).");
     return;
+  }
+  
+  if (discount > 0) {
+    sale.total = Math.max(0, sale.total - discount);
+    sale.note = (sale.note ? sale.note + '; ' : '') + 'Pelunasan dengan diskon pembulatan Rp ' + discount;
   }
   
   sale.payStatus = 'lunas';
@@ -3956,7 +4008,7 @@ function submitPelunasan(id) {
   sale.updatedAt = new Date().toISOString();
   sale.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
   
-  writeAuditLog('pelunasan_piutang', `Buyer: ${sale.buyer}, Total: ${fRp(sale.total)}, Kas: ${payCashAccount}`);
+  writeAuditLog('pelunasan_piutang', `Buyer: ${sale.buyer}, Total: ${fRp(sale.total)}, Kas: ${payCashAccount}${discount > 0 ? `, Diskon: ${fRp(discount)}` : ''}`);
   LS.save();
   if (db) {
     db.collection('salesEntries').doc(id).set(sale).catch(err => console.error("Cloud pay status update failed:", err));
@@ -3964,9 +4016,11 @@ function submitPelunasan(id) {
   document.getElementById('pelunasan-modal')?.remove();
   renderJual();
 }
+
 function editSale(id){
   const e=S.salesEntries.find(x=>x.id===id); if(!e)return;
   S.j_editId=id;
+  S.section='catat'; // Redirect to form
   S.j_date=e.date; S.j_item=e.item||'Telur'; S.j_type=e.type==='manual'?'eceran':e.type;
   S.j_manualOverride=true;
   S.j_kg=e.kg; S.j_buyer=e.buyer||''; S.j_phone=e.buyerPhone||'';
@@ -3982,6 +4036,712 @@ function cancelEdit(){
   S.j_date='';S.j_kg='';S.j_buyer='';S.j_phone='';S.j_disc='';S.j_note='';S.j_manualPrice='';S.j_payStatus='lunas';S.j_cashAccount='1.1.01.01 Kas Tunai';
   S.j_manualOverride=false;
   renderJual();
+}
+
+// ═══════════════════════════════════════════════
+// BUYER INTELLIGENCE & DISTRIBUTION STRATEGY SYSTEM
+// ═══════════════════════════════════════════════
+
+function compileBuyerAnalytics(sales) {
+  const buyers = {};
+  let totalVolumeAll = 0;
+  
+  sales.forEach(s => {
+    if (!s.deleted) {
+      totalVolumeAll += num(s.kg);
+    }
+  });
+
+  const nowMs = Date.now();
+  const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const sixtyDaysAgo = new Date(nowMs - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  sales.forEach(s => {
+    if (s.deleted) return;
+    const name = s.buyer || '(Tanpa Nama)';
+    if (!buyers[name]) {
+      buyers[name] = {
+        name: name,
+        phone: s.buyerPhone || '',
+        totalVolume: 0,
+        totalRevenue: 0,
+        transactions: [],
+        cashTrxCount: 0,
+        unpaidTrxCount: 0,
+        paidTrxCount: 0,
+        unpaidTotal: 0,
+        lastActive: s.date,
+        avgInterval: 0,
+        volumeLast30: 0,
+        volumePrev30: 0,
+      };
+    }
+    const b = buyers[name];
+    const kg = num(s.kg);
+    const total = num(s.total);
+    b.totalVolume += kg;
+    b.totalRevenue += total;
+    b.transactions.push(s);
+    if (s.payStatus === 'belum') {
+      b.unpaidTrxCount++;
+      b.unpaidTotal += total;
+    } else {
+      b.paidTrxCount++;
+    }
+    if (s.payStatus === 'lunas' && (!s.payDate || s.payDate === s.date)) {
+      b.cashTrxCount++;
+    }
+    if (s.date > b.lastActive) {
+      b.lastActive = s.date;
+    }
+    if (s.date >= thirtyDaysAgo) {
+      b.volumeLast30 += kg;
+    } else if (s.date >= sixtyDaysAgo && s.date < thirtyDaysAgo) {
+      b.volumePrev30 += kg;
+    }
+    if (s.buyerPhone && !b.phone) {
+      b.phone = s.buyerPhone;
+    }
+  });
+
+  const compiledList = Object.values(buyers).map(b => {
+    b.transactions.sort((a, b) => a.date.localeCompare(b.date));
+    
+    if (b.transactions.length > 1) {
+      let totalDays = 0;
+      for (let i = 1; i < b.transactions.length; i++) {
+        const d1 = new Date(b.transactions[i - 1].date);
+        const d2 = new Date(b.transactions[i].date);
+        const diffTime = Math.abs(d2 - d1);
+        totalDays += Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+      b.avgInterval = totalDays / (b.transactions.length - 1);
+    } else {
+      b.avgInterval = 30;
+    }
+
+    b.share = totalVolumeAll > 0 ? (b.totalVolume / totalVolumeAll) * 100 : 0;
+
+    const config = S.buyerConfigs[b.name] || {};
+    b.notes = config.notes || '';
+    
+    // Auto Category Classification
+    let autoCat = 'Opportunistic';
+    if (b.transactions.length > 0) {
+      const isSmallVolumePerTrx = b.totalVolume / b.transactions.length < 20;
+      const isDirectCash = b.unpaidTrxCount === 0 && b.transactions.every(t => t.payStatus === 'lunas');
+
+      if (b.share > 15 || b.totalVolume > 300) {
+        autoCat = 'Anchor Buyer';
+      } else if (b.transactions.length >= 3 && b.totalVolume >= 50) {
+        autoCat = 'Core Retail';
+      } else if (isSmallVolumePerTrx && isDirectCash) {
+        autoCat = 'End Consumer';
+      } else {
+        autoCat = 'Opportunistic';
+      }
+    }
+
+    b.category = config.manualCategory || autoCat;
+    b.isAutoCategory = !config.manualCategory;
+    b.autoCategoryValue = autoCat;
+
+    // Pricing Tier
+    let defaultTier = 'Retail Partner Tier';
+    if (b.category === 'Anchor Buyer') {
+      defaultTier = 'Distributor Tier';
+    } else if (b.category === 'End Consumer') {
+      defaultTier = 'Direct Consumer Tier';
+    }
+    b.pricingTier = config.manualPricingTier || defaultTier;
+    b.isAutoPricingTier = !config.manualPricingTier;
+    b.autoPricingTierValue = defaultTier;
+
+    const tags = [];
+    if (b.transactions.length >= 3 && b.volumeLast30 > 0 && b.volumePrev30 > 0) {
+      const change = Math.abs(b.volumeLast30 - b.volumePrev30) / b.volumePrev30;
+      if (change < 0.2) tags.push('Stable');
+    }
+    if (b.volumeLast30 > b.volumePrev30 * 1.15 && b.volumePrev30 > 0) {
+      tags.push('Growing');
+    }
+    if (b.avgInterval <= 7 && b.transactions.length >= 4) {
+      tags.push('Loyal');
+    }
+    if (b.cashTrxCount === b.transactions.length && b.transactions.length >= 2) {
+      tags.push('Cashflow Friendly');
+    }
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const hasOverdue = b.transactions.some(t => t.payStatus === 'belum' && t.date < sevenDaysAgo);
+    if (hasOverdue) {
+      tags.push('Tempo Risk');
+    }
+    b.tags = tags;
+
+    // Relationship Score
+    const freqScore = Math.min(30, (b.transactions.length / 12) * 30);
+    const volScore = Math.min(30, (b.totalVolume / 600) * 30);
+    let payScore = 40;
+    if (b.unpaidTrxCount > 0) {
+      payScore -= b.unpaidTrxCount * 8;
+      if (hasOverdue) payScore -= 15;
+    }
+    payScore = Math.max(0, payScore);
+    b.relationshipScore = Math.round(freqScore + volScore + payScore);
+
+    return b;
+  });
+
+  return compiledList;
+}
+
+window.autoRecommendPricingTier = function(buyerName) {
+  if (!buyerName) {
+    const alertEl = document.getElementById('price-recommend-alert');
+    if (alertEl) alertEl.style.display = 'none';
+    return;
+  }
+  const E = S.salesEntries.filter(e => !e.deleted);
+  const analytics = compileBuyerAnalytics(E);
+  const buyer = analytics.find(b => b.name.toLowerCase() === buyerName.toLowerCase().trim());
+  
+  const alertEl = document.getElementById('price-recommend-alert');
+  if (buyer) {
+    const recommendedTier = buyer.pricingTier;
+    let typeVal = 'grosir';
+    if (recommendedTier === 'Distributor Tier') typeVal = 'distributor';
+    if (recommendedTier === 'Direct Consumer Tier') typeVal = 'eceran';
+    if (recommendedTier === 'Event Tier') typeVal = 'event';
+    if (recommendedTier === 'Retail Partner Tier') typeVal = 'grosir';
+    
+    if (alertEl) {
+      alertEl.innerHTML = `💡 Rekomendasi: <b>${recommendedTier}</b> (Skor Hubungan: ${buyer.relationshipScore})`;
+      alertEl.style.display = 'block';
+    }
+    
+    if (!S.j_manualOverride) {
+      S.j_type = typeVal;
+      const selectEl = document.getElementById('j-type-select');
+      if (selectEl) selectEl.value = typeVal;
+      updJualTotal();
+    }
+  } else {
+    if (alertEl) alertEl.style.display = 'none';
+  }
+};
+
+window.resetPriceOverride = function() {
+  S.j_manualOverride = false;
+  const buyerInput = document.getElementById('jb');
+  if (buyerInput && buyerInput.value) {
+    autoRecommendPricingTier(buyerInput.value);
+  }
+  updJualTotal();
+  renderJual();
+};
+
+function renderBuyerIntelligence(E) {
+  let list = compileBuyerAnalytics(E);
+  
+  // Search filter
+  if (S.bi_search) {
+    const q = S.bi_search.toLowerCase();
+    list = list.filter(b => b.name.toLowerCase().includes(q));
+  }
+  
+  // Category filter
+  if (S.bi_filterCat) {
+    list = list.filter(b => b.category === S.bi_filterCat);
+  }
+  
+  // Sorting
+  if (S.bi_sortBy === 'volume_desc') {
+    list.sort((a, b) => b.totalVolume - a.totalVolume);
+  } else if (S.bi_sortBy === 'volume_asc') {
+    list.sort((a, b) => a.totalVolume - b.totalVolume);
+  } else if (S.bi_sortBy === 'revenue_desc') {
+    list.sort((a, b) => b.totalRevenue - a.totalRevenue);
+  } else if (S.bi_sortBy === 'score_desc') {
+    list.sort((a, b) => b.relationshipScore - a.relationshipScore);
+  } else if (S.bi_sortBy === 'name_asc') {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const totalItems = list.length;
+  const totalPages = Math.ceil(totalItems / S.bi_perPage) || 1;
+  if (S.bi_page > totalPages) S.bi_page = totalPages;
+  if (S.bi_page < 1) S.bi_page = 1;
+  const startIdx = (S.bi_page - 1) * S.bi_perPage;
+  const paginatedList = list.slice(startIdx, startIdx + S.bi_perPage);
+
+  const filterBarHtml = `
+    <div class="card fi" style="padding: 16px; margin-bottom: 16px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="users" style="width: 20px; height: 20px; color: var(--gold);"></i>
+          <span style="font-size: 15px; font-weight: 700; color: var(--text1);">Dashboard Intelegensi & Perilaku Pembeli</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; width: 100%; justify-content: flex-end;">
+          <input type="text" id="bi-search-input" class="inp" placeholder="Cari nama pembeli..." style="max-width: 200px; padding: 6px 12px; font-size: 13px;" value="${S.bi_search || ''}" oninput="S.bi_search=this.value; renderBuyerIntelligence(S.salesEntries.filter(e => !e.deleted));">
+          <select id="bi-cat-select" class="inp" style="max-width: 160px; padding: 6px 12px; font-size: 13px;" onchange="S.bi_filterCat=this.value; renderBuyerIntelligence(S.salesEntries.filter(e => !e.deleted));">
+            <option value="">Semua Kategori</option>
+            <option value="Anchor Buyer" ${S.bi_filterCat === 'Anchor Buyer' ? 'selected' : ''}>Anchor Buyer</option>
+            <option value="Core Retail" ${S.bi_filterCat === 'Core Retail' ? 'selected' : ''}>Core Retail</option>
+            <option value="Opportunistic" ${S.bi_filterCat === 'Opportunistic' ? 'selected' : ''}>Opportunistic</option>
+            <option value="End Consumer" ${S.bi_filterCat === 'End Consumer' ? 'selected' : ''}>End Consumer</option>
+          </select>
+          <select id="bi-sort-select" class="inp" style="max-width: 180px; padding: 6px 12px; font-size: 13px;" onchange="S.bi_sortBy=this.value; renderBuyerIntelligence(S.salesEntries.filter(e => !e.deleted));">
+            <option value="volume_desc" ${S.bi_sortBy === 'volume_desc' ? 'selected' : ''}>Volume Terbanyak</option>
+            <option value="volume_asc" ${S.bi_sortBy === 'volume_asc' ? 'selected' : ''}>Volume Terendah</option>
+            <option value="revenue_desc" ${S.bi_sortBy === 'revenue_desc' ? 'selected' : ''}>Omzet Terbanyak</option>
+            <option value="score_desc" ${S.bi_sortBy === 'score_desc' ? 'selected' : ''}>Relationship Score</option>
+            <option value="name_asc" ${S.bi_sortBy === 'name_asc' ? 'selected' : ''}>Nama (A-Z)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const cardsHtml = paginatedList.map(b => {
+    let scoreColor = 'var(--red)';
+    if (b.relationshipScore >= 80) scoreColor = 'var(--green)';
+    else if (b.relationshipScore >= 50) scoreColor = 'var(--gold)';
+    
+    let catColor = 'var(--text2)';
+    let catBg = 'var(--surface2)';
+    if (b.category === 'Anchor Buyer') { catColor = 'var(--gold)'; catBg = 'var(--bg-gold)'; }
+    else if (b.category === 'Core Retail') { catColor = 'var(--blue)'; catBg = 'var(--bg-blue)'; }
+    else if (b.category === 'End Consumer') { catColor = 'var(--green)'; catBg = 'var(--bg-green)'; }
+    else if (b.category === 'Opportunistic') { catColor = 'var(--text3)'; catBg = 'var(--surface3)'; }
+
+    const tagBadges = b.tags.map(t => {
+      let tClr = 'var(--text3)';
+      let tBg = 'var(--surface3)';
+      if (t === 'Loyal' || t === 'Stable') { tClr = 'var(--green)'; tBg = 'var(--bg-green)'; }
+      else if (t === 'Growing') { tClr = 'var(--blue)'; tBg = 'var(--bg-blue)'; }
+      else if (t === 'Cashflow Friendly') { tClr = 'var(--gold)'; tBg = 'var(--bg-gold)'; }
+      else if (t === 'Tempo Risk') { tClr = 'var(--red)'; tBg = 'var(--bg-red)'; }
+      return `<span style="font-size:9px; font-weight:700; color:${tClr}; background:${tBg}; padding:2px 6px; border-radius:4px; margin-right:4px;">${t}</span>`;
+    }).join('');
+
+    return `
+      <div class="card fi" style="padding:16px; border:1px solid var(--border-subtle); display:flex; flex-direction:column; justify-content:space-between; gap:12px; transition:transform 0.2s, box-shadow 0.2s; cursor:pointer;" onclick="showBuyerProfileModal('${b.name.replace(/'/g, "\\'")}')">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="min-width:0;">
+              <h4 style="margin:0; font-size:14px; font-weight:700; color:var(--text1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.name}</h4>
+              ${b.phone ? `<span style="font-size:10px; color:var(--text3);">📞 ${b.phone}</span>` : ''}
+            </div>
+            <span style="font-size:10px; font-weight:700; color:${catColor}; background:${catBg}; padding:2px 8px; border-radius:12px; white-space:nowrap;">
+              ${b.category}
+            </span>
+          </div>
+          
+          <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:4px;">
+            ${tagBadges || '<span style="font-size:9px; color:var(--text3); font-style:italic;">No active tags</span>'}
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; border-top:1px dashed var(--border-subtle); padding-top:10px; margin-top:4px;">
+          <div>
+            <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Total Volume</span>
+            <span style="font-size:13px; font-weight:700; color:var(--text1);">${b.totalVolume.toFixed(1)} kg</span>
+          </div>
+          <div>
+            <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Total Omzet</span>
+            <span style="font-size:13px; font-weight:700; color:var(--text1);">${fRp(b.totalRevenue)}</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:10px; margin-top:2px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:var(--text3);">Rel. Score:</span>
+            <span style="font-size:12px; font-weight:800; color:${scoreColor};">${b.relationshipScore}</span>
+          </div>
+          <button style="border:none; background:var(--bg-gold); color:var(--gold); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+            <i data-lucide="eye" style="width:12px; height:12px;"></i> Kelola
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const pagHtml = `
+    <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:24px;">
+      <button class="btn btn-sm" ${S.bi_page <= 1 ? 'disabled style="opacity:0.5; pointer-events:none;"' : ''} onclick="S.bi_page--; renderBuyerIntelligence(S.salesEntries.filter(e => !e.deleted));">‹ Prev</button>
+      <span style="font-size:12px; font-weight:600; color:var(--text2);">Halaman ${S.bi_page} dari ${totalPages} (${totalItems} pembeli)</span>
+      <button class="btn btn-sm" ${S.bi_page >= totalPages ? 'disabled style="opacity:0.5; pointer-events:none;"' : ''} onclick="S.bi_page++; renderBuyerIntelligence(S.salesEntries.filter(e => !e.deleted));">Next ›</button>
+    </div>
+  `;
+
+  let html = `
+    <div class="sum-b fi" style="margin-bottom: 20px;">
+      <div class="sc">
+        <div class="sl">Total Pembeli Aktif</div>
+        <div class="sv" style="font-size:16px;color:var(--gold); font-weight: 800;">${totalItems}</div>
+        <div class="ss">Tercatat di sistem</div>
+      </div>
+      <div class="sc">
+        <div class="sl">Anchor Buyers</div>
+        <div class="sv" style="font-size:16px;color:var(--blue); font-weight: 800;">${list.filter(b => b.category === 'Anchor Buyer').length}</div>
+        <div class="ss">Mitra volume skala besar</div>
+      </div>
+      <div class="sc">
+        <div class="sl">Rata-rata Skor Hubungan</div>
+        <div class="sv" style="font-size:16px;color:var(--green); font-weight: 800;">
+          ${totalItems > 0 ? Math.round(list.reduce((s, b) => s + b.relationshipScore, 0) / totalItems) : 0}
+        </div>
+        <div class="ss">Skor kesehatan pelanggan</div>
+      </div>
+    </div>
+
+    ${filterBarHtml}
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 16px;">
+      ${cardsHtml || `
+        <div style="grid-column: 1 / -1; padding: 48px; text-align: center; color: var(--text3);">
+          <p style="font-size: 13px; font-weight: 600; color: var(--text2);">Tidak ada pembeli yang ditemukan</p>
+        </div>
+      `}
+    </div>
+
+    ${totalPages > 1 ? pagHtml : ''}
+  `;
+
+  document.getElementById('content').innerHTML = html;
+  if (window.lucide) lucide.createIcons();
+}
+
+function drawSparkline(points, width = 160, height = 40) {
+  if (points.length < 2) return `<span style="font-size:11px;color:var(--text3);font-style:italic">Belum cukup data tren</span>`;
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = max - min || 1;
+  const coords = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * width;
+    const y = height - ((p - min) / range) * height;
+    return `${x},${y}`;
+  });
+  return `
+    <svg width="${width}" height="${height}" style="overflow:visible;">
+      <path d="M ${coords.join(' L ')}" fill="none" stroke="var(--gold)" stroke-width="2" />
+      ${coords.map((c, i) => `<circle cx="${c.split(',')[0]}" cy="${c.split(',')[1]}" r="3" fill="var(--gold)" />`).join('')}
+    </svg>
+  `;
+}
+
+window.showBuyerProfileModal = function(buyerName) {
+  const E = S.salesEntries.filter(e => !e.deleted);
+  const analytics = compileBuyerAnalytics(E);
+  const b = analytics.find(x => x.name === buyerName);
+  if (!b) return;
+
+  // Monthly breakdown for sparkline (last 6 months)
+  const monthlyData = {};
+  b.transactions.forEach(t => {
+    const month = t.date.slice(0, 7); // YYYY-MM
+    monthlyData[month] = (monthlyData[month] || 0) + num(t.kg);
+  });
+  const sortedMonths = Object.keys(monthlyData).sort().slice(-6);
+  const sparkPoints = sortedMonths.map(m => monthlyData[m]);
+
+  document.getElementById('buyer-profile-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'buyer-profile-modal';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(0,0,0,0.6)';
+  modal.style.backdropFilter = 'blur(4px)';
+  modal.style.zIndex = '9999';
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+
+  let scoreColor = 'var(--red)';
+  if (b.relationshipScore >= 80) scoreColor = 'var(--green)';
+  else if (b.relationshipScore >= 50) scoreColor = 'var(--gold)';
+
+  modal.innerHTML = `
+    <div class="card" style="max-width:650px;width:95%;padding:24px;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,0.3);background:${S.dark?'var(--surface1)':'#fff'}; display:flex; flex-direction:column; gap:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+        <h3 style="margin:0; font-family:'Playfair Display',serif; color:var(--text1);">${b.name}</h3>
+        <button onclick="document.getElementById('buyer-profile-modal').remove()" style="background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; md:grid-template-columns:1.2fr 1fr; gap:20px; overflow-y:auto; max-height:70vh;">
+        <!-- Left Column: Metrics -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase;">Kesehatan Kemitraan</span>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+              <div style="font-size:28px; font-weight:900; color:${scoreColor}; font-family:var(--font-mono);">${b.relationshipScore}<span style="font-size:14px; color:var(--text3); font-weight:500;">/100</span></div>
+              <div style="font-size:11px; color:var(--text2); line-height:1.3;">
+                <b>${b.relationshipScore >= 80 ? 'Kemitraan Sehat' : b.relationshipScore >= 50 ? 'Kemitraan Stabil' : 'Kemitraan Berisiko'}</b><br>
+                Berdasarkan frekuensi, volume, dan kelancaran kas.
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
+              <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Total Pembelian</span>
+              <span style="font-size:14px; font-weight:800; color:var(--text1);">${b.totalVolume.toFixed(1)} kg</span>
+              <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">Rata-rata: ${(b.totalVolume / b.transactions.length).toFixed(1)} kg/trx</span>
+            </div>
+            <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
+              <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Kontribusi Omzet</span>
+              <span style="font-size:14px; font-weight:800; color:var(--text1);">${fRp(b.totalRevenue)}</span>
+              <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">${b.transactions.length} transaksi</span>
+            </div>
+          </div>
+
+          <div>
+            <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; display:block; margin-bottom:8px;">Tren Pembelian (6 Bulan Terakhir)</span>
+            <div style="display:flex; align-items:center; gap:16px; background:var(--surface2); padding:12px; border-radius:8px; border:1px solid var(--border-subtle);">
+              ${drawSparkline(sparkPoints)}
+              <div style="font-size:10px; color:var(--text2);">
+                Volume 30 hari terakhir:<br>
+                <b style="font-size:12px; color:var(--text1);">${b.volumeLast30.toFixed(1)} kg</b>
+              </div>
+            </div>
+          </div>
+
+          ${b.unpaidTotal > 0 ? `
+            <div style="background:var(--bg-red); border:1px solid rgba(224,85,85,.15); padding:12px; border-radius:8px;">
+              <span style="font-size:11px; font-weight:700; color:var(--red); display:block; margin-bottom:4px;">⚠️ Saldo Piutang Berjalan</span>
+              <div style="font-size:16px; font-weight:800; color:var(--red); font-family:var(--font-mono);">${fRp(b.unpaidTotal)}</div>
+              <span style="font-size:10px; color:var(--red); opacity:0.8;">Terdapat ${b.unpaidTrxCount} transaksi tempo belum dilunasi.</span>
+            </div>
+          ` : `
+            <div style="background:var(--bg-green); border:1px solid rgba(34,197,94,.15); padding:10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+              <span style="color:var(--green); font-size:11px; font-weight:700;">✓ Tidak ada piutang tertunggak (Lunas Bersih)</span>
+            </div>
+          `}
+        </div>
+
+        <!-- Right Column: Override Controls -->
+        <div style="display:flex; flex-direction:column; gap:12px; border-left:1px solid var(--border-subtle); padding-left:20px;">
+          <div class="field">
+            <label>Kategori Buyer (Override)</label>
+            <select id="mo-category" class="inp">
+              <option value="" ${b.isAutoCategory ? 'selected' : ''}>Auto (Recommended: ${b.autoCategoryValue})</option>
+              <option value="Anchor Buyer" ${S.buyerConfigs[b.name]?.manualCategory === 'Anchor Buyer' ? 'selected' : ''}>Anchor Buyer</option>
+              <option value="Core Retail" ${S.buyerConfigs[b.name]?.manualCategory === 'Core Retail' ? 'selected' : ''}>Core Retail</option>
+              <option value="Opportunistic" ${S.buyerConfigs[b.name]?.manualCategory === 'Opportunistic' ? 'selected' : ''}>Opportunistic</option>
+              <option value="End Consumer" ${S.buyerConfigs[b.name]?.manualCategory === 'End Consumer' ? 'selected' : ''}>End Consumer</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tier Pricing (Override)</label>
+            <select id="mo-pricing" class="inp">
+              <option value="" ${b.isAutoPricingTier ? 'selected' : ''}>Auto (Recommended: ${b.autoPricingTierValue})</option>
+              <option value="Distributor Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Distributor Tier' ? 'selected' : ''}>Distributor Tier (Grosir - Spread)</option>
+              <option value="Retail Partner Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Retail Partner Tier' ? 'selected' : ''}>Retail Partner Tier (Grosir)</option>
+              <option value="Direct Consumer Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Direct Consumer Tier' ? 'selected' : ''}>Direct Consumer Tier (Eceran)</option>
+              <option value="Event Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Event Tier' ? 'selected' : ''}>Event Tier (Harga Khusus)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Catatan Strategis</label>
+            <textarea id="mo-notes" class="inp" style="height:100px; resize:none;" placeholder="Tulis catatan penting kemitraan, komitmen harga, histori negosiasi...">${b.notes}</textarea>
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+            <button class="btn btn-sm" style="background:var(--surface3); color:var(--text1); border:1px solid var(--border-subtle);" onclick="document.getElementById('buyer-profile-modal').remove()">Batal</button>
+            <button class="btn btn-g btn-sm" onclick="saveBuyerConfig('${b.name.replace(/'/g, "\\'")}')">Simpan Konfigurasi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+
+window.saveBuyerConfig = function(name) {
+  const manualCategory = document.getElementById('mo-category').value;
+  const manualPricingTier = document.getElementById('mo-pricing').value;
+  const notes = document.getElementById('mo-notes').value;
+
+  if (!S.buyerConfigs[name]) {
+    S.buyerConfigs[name] = {};
+  }
+  
+  S.buyerConfigs[name] = {
+    manualCategory: manualCategory || null,
+    manualPricingTier: manualPricingTier || null,
+    notes: notes || null
+  };
+
+  LS.save();
+  uploadStateToCloud();
+  document.getElementById('buyer-profile-modal')?.remove();
+  renderJual();
+};
+
+function renderDistributionDashboard(E) {
+  const analytics = compileBuyerAnalytics(E);
+  
+  let totalVolumeAll = analytics.reduce((s, b) => s + b.totalVolume, 0);
+
+  // 1. Calculate Herfindahl-Hirschman Index (HHI)
+  let hhi = 0;
+  analytics.forEach(b => {
+    const share = b.share;
+    hhi += share * share;
+  });
+  
+  let hhiRiskLevel = 'Rendah';
+  let hhiColor = 'var(--green)';
+  let hhiDescription = 'Distribusi Sehat & Aman. Risiko konsentrasi pasar rendah karena penjualan tersebar merata.';
+  if (hhi >= 2500) {
+    hhiRiskLevel = 'Tinggi';
+    hhiColor = 'var(--red)';
+    hhiDescription = 'Ketergantungan Pembeli Sangat Tinggi! BUM Desa rentan terhadap hilangnya pembeli jangkar. Segera lakukan diversifikasi kemitraan.';
+  } else if (hhi >= 1500) {
+    hhiRiskLevel = 'Sedang';
+    hhiColor = 'var(--gold)';
+    hhiDescription = 'Konsentrasi Moderat. Satu atau dua pembeli memiliki kontribusi besar. Disarankan memperluas jaringan retail.';
+  }
+
+  // 2. Channel Splits
+  const channelVolume = {
+    'Anchor Buyer': 0,
+    'Core Retail': 0,
+    'End Consumer': 0,
+    'Opportunistic': 0
+  };
+  analytics.forEach(b => {
+    if (channelVolume[b.category] !== undefined) {
+      channelVolume[b.category] += b.totalVolume;
+    }
+  });
+
+  // 3. Strategic Actionable Recommendations
+  const alerts = [];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  analytics.forEach(b => {
+    if (b.unpaidTotal > 0) {
+      const hasOverdue = b.transactions.some(t => t.payStatus === 'belum' && t.date < sevenDaysAgo);
+      if (hasOverdue) {
+        alerts.push({
+          type: 'danger',
+          title: `Peringatan Debitur Tempo: ${b.name}`,
+          text: `Memiliki tunggakan piutang senilai <b>${fRp(b.unpaidTotal)}</b> lebih dari 7 hari. Disarankan batasi pengiriman telur berikutnya.`
+        });
+      }
+    }
+
+    if (b.category === 'Anchor Buyer' && b.relationshipScore < 70) {
+      alerts.push({
+        type: 'warning',
+        title: `Hubungan Kemitraan Melemah: ${b.name}`,
+        text: `Skor hubungan Anchor Buyer berada di angka <b>${b.relationshipScore}</b>. Segera jadwalkan kunjungan kemitraan.`
+      });
+    }
+
+    if (b.category === 'Opportunistic' && b.tags.includes('Growing') && b.transactions.length >= 3) {
+      alerts.push({
+        type: 'info',
+        title: `Potensi Naik Kelas: ${b.name}`,
+        text: `Pembeli oportunistis menunjukkan pertumbuhan volume yang cepat. Tawarkan kontrak Mitra Retail (Retail Partner) dengan penjaminan pasokan.`
+      });
+    }
+  });
+
+  if (alerts.length === 0) {
+    alerts.push({
+      type: 'success',
+      title: 'Struktur Distribusi Optimal',
+      text: 'Semua kemitraan berjalan lancar. Pembayaran piutang terkontrol di bawah batas toleransi.'
+    });
+  }
+
+  let html = `
+    <div style="display:grid; grid-template-columns:1fr; lg:grid-template-columns:1.2fr 1fr; gap:20px;" class="fi">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div class="card" style="padding:20px;">
+          <h4 style="margin:0 0 16px; font-family:'Playfair Display',serif; color:var(--text1); font-size:16px;">Analisis Dependensi Kemitraan (HHI Index)</h4>
+          
+          <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+            <div style="position:relative; width:90px; height:90px; border-radius:50%; border:8px solid var(--surface3); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <div style="position:absolute; width:100%; height:100%; border-radius:50%; border:8px solid ${hhiColor}; border-top-color:transparent; transform:rotate(${Math.min(180, (hhi/4000)*180)}deg);"></div>
+              <div style="text-align:center;">
+                <span style="font-size:18px; font-weight:900; color:var(--text1); display:block; font-family:var(--font-mono);">${Math.round(hhi)}</span>
+                <span style="font-size:8px; color:var(--text3); text-transform:uppercase; font-weight:700;">HHI</span>
+              </div>
+            </div>
+
+            <div style="flex:1; min-width:200px;">
+              <span style="font-size:10px; font-weight:700; color:${hhiColor}; background:var(--surface2); padding:2px 8px; border-radius:12px; display:inline-block; margin-bottom:6px;">
+                Risiko Konsentrasi: ${hhiRiskLevel}
+              </span>
+              <p style="font-size:12px; color:var(--text2); margin:0; line-height:1.4;">${hhiDescription}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+          <h4 style="margin:0 0 16px; font-family:'Playfair Display',serif; color:var(--text1); font-size:16px;">Proporsi Distribusi Kategori Buyer</h4>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            ${Object.entries(channelVolume).map(([cat, vol]) => {
+              const pct = totalVolumeAll > 0 ? (vol / totalVolumeAll) * 100 : 0;
+              let cColor = 'var(--text3)';
+              if (cat === 'Anchor Buyer') cColor = 'var(--gold)';
+              else if (cat === 'Core Retail') cColor = 'var(--blue)';
+              else if (cat === 'End Consumer') cColor = 'var(--green)';
+              return `
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:4px;">
+                    <span style="color:var(--text1);">${cat}</span>
+                    <span style="color:var(--text2);">${pct.toFixed(1)}% (${vol.toFixed(1)} kg)</span>
+                  </div>
+                  <div style="height:6px; background:var(--surface3); border-radius:3px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:${cColor}; border-radius:3px;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <h4 style="margin:0; font-family:'Playfair Display',serif; color:var(--text1); font-size:16px; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="brain" style="width:18px; height:18px; color:var(--gold);"></i> Rekomendasi Distribusi Strategis
+        </h4>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:60vh;">
+          ${alerts.map(a => {
+            let borderClr = 'rgba(212,168,50,0.15)';
+            let bgClr = 'var(--surface2)';
+            let titleClr = 'var(--text1)';
+            if (a.type === 'danger') { borderClr = 'rgba(224,85,85,0.2)'; bgClr = 'var(--bg-red)'; titleClr = 'var(--red)'; }
+            else if (a.type === 'warning') { borderClr = 'rgba(212,168,50,0.2)'; bgClr = 'var(--bg-gold)'; titleClr = 'var(--gold)'; }
+            else if (a.type === 'success') { borderClr = 'rgba(34,197,94,0.2)'; bgClr = 'var(--bg-green)'; titleClr = 'var(--green)'; }
+            else if (a.type === 'info') { borderClr = 'rgba(59,130,246,0.2)'; bgClr = 'var(--bg-blue)'; titleClr = 'var(--blue)'; }
+
+            return `
+              <div style="background:${bgClr}; border:1px solid ${borderClr}; padding:12px; border-radius:8px;">
+                <div style="font-weight:700; font-size:12px; color:${titleClr}; margin-bottom:4px;">${a.title}</div>
+                <div style="font-size:11px; color:var(--text2); line-height:1.4;">${a.text}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('content').innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
 // ═══════════════════════════════════════════════
@@ -6544,6 +7304,14 @@ function renderJual(){
     renderPiutangUsaha(E);
     return;
   }
+  if (S.section === 'intel') {
+    renderBuyerIntelligence(E);
+    return;
+  }
+  if (S.section === 'dist') {
+    renderDistributionDashboard(E);
+    return;
+  }
   const todaySales=E.filter(e=>e.date===td);
   const todayKg=todaySales.reduce((s,e)=>s+num(e.kg),0);
   const todayRev=todaySales.reduce((s,e)=>s+num(e.total),0);
@@ -6649,20 +7417,26 @@ function renderJual(){
           </select>
         </div>
         ${isTelur?`
-        <div style="margin-bottom:12px"><div class="flbl" style="margin-bottom:6px">Jenis Harga</div>
-          <div class="type-tog">
-            <button class="t-btn ${S.j_type==='grosir'?'tg':''}" onclick="${locked?'':"S.j_type='grosir';S.j_manualOverride=true;renderJual()"}" ${locked?'disabled':''}>${fI('🏷')} Grosir</button>
-            <button class="t-btn ${S.j_type==='eceran'?'te':''}" onclick="${locked?'':"S.j_type='eceran';S.j_manualOverride=true;renderJual()"}" ${locked?'disabled':''}>${fI('🛒')} Eceran</button>
-          </div>
+        <div style="margin-bottom:12px"><div class="flbl" style="margin-bottom:6px">Tier Harga & Jenis Transaksi</div>
+          <select id="j-type-select" class="inp" onchange="S.j_type=this.value;S.j_manualOverride=true;updJualTotal();renderJual()" ${locked?'disabled':''}>
+            <option value="distributor" ${S.j_type==='distributor'?'selected':''}>Distributor Tier (Harga Grosir - Spread)</option>
+            <option value="grosir" ${S.j_type==='grosir'?'selected':''}>Retail Partner Tier (Harga Grosir)</option>
+            <option value="eceran" ${S.j_type==='eceran'?'selected':''}>Direct Consumer Tier (Harga Eceran)</option>
+            <option value="event" ${S.j_type==='event'?'selected':''}>Event Tier (Harga Khusus)</option>
+          </select>
+          <div id="price-recommend-alert" style="font-size:11px; font-weight:600; color:var(--gold); margin-top:6px; display:none; background:var(--bg-gold); border:1px solid rgba(212,168,50,0.15); padding:6px 10px; border-radius:6px;"></div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border-subtle);border-radius:8px">
             <label style="font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap">Min. Grosir</label>
             <input type="number" id="j-mingrosir" class="inp inp-sm" style="width:60px;text-align:center;padding:4px 6px;font-size:12px;font-weight:700" value="${S.j_grosirMinWeight}" min="1" step="1"
               onchange="S.j_grosirMinWeight=+this.value||15;LS.save();updJualTotal()" ${locked?'disabled':''}>
-            <span style="font-size:10px;color:var(--text3)">kg (auto-toggle)</span>
+            <span style="font-size:10px;color:var(--text3)">kg (auto)</span>
+            ${S.j_manualOverride ? `
+              <button onclick="resetPriceOverride()" style="margin-left:auto; font-size:9px; background:var(--surface3); border:1px solid var(--border-subtle); border-radius:4px; padding:2px 6px; cursor:pointer; color:var(--text2); font-weight:700;">Riset Auto</button>
+            ` : ''}
           </div>
         </div>
         <div class="pos-price">
-          <div class="pos-pl">Harga ${S.j_type==='grosir'?'Grosir':'Eceran'} — ${fmtD(jd)||fmtD(td)}</div>
+          <div class="pos-pl">Harga Satuan (${S.j_type === 'distributor' ? 'Distributor' : S.j_type === 'grosir' ? 'Retail Partner' : S.j_type === 'eceran' ? 'Direct Consumer' : S.j_type === 'event' ? 'Event' : 'Acuan'}) — ${fmtD(jd)||fmtD(td)}</div>
           ${autoPrice
             ?`<div class="pos-pv">${fRp(autoPrice)}<span style="font-size:14px;font-weight:400">/kg</span></div>`
             :`<div style="font-size:12px;color:var(--red)">${fI('⚠️')} Belum ada harga untuk tanggal ini.<br><span style="font-size:11px;color:var(--text3)">Set di Kalkulator Harga dulu.</span></div>`}
@@ -6700,7 +7474,7 @@ function renderJual(){
           <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold)">${fRp(formTotal)}</span>
         </div>`:''}</div>
         <div class="field"><label>Pembeli</label>
-          <input type="text" id="jb" class="inp inp-sm" placeholder="Nama / warung" value="${S.j_buyer}" oninput="S.j_buyer=this.value" ${locked?'disabled':''}>
+          <input type="text" id="jb" class="inp inp-sm" placeholder="Nama / warung" value="${S.j_buyer}" oninput="S.j_buyer=this.value; if(window.autoRecommendPricingTier) autoRecommendPricingTier(this.value);" ${locked?'disabled':''}>
         </div>
         <div class="field"><label>Catatan</label>
           <input type="text" id="jn" class="inp inp-sm" placeholder="Misal: bayar besok, antar sore" value="${S.j_note}" oninput="S.j_note=this.value" ${locked?'disabled':''}>
@@ -6954,6 +7728,12 @@ function renderJual(){
   html += `</div></div>`;
 
   document.getElementById('content').innerHTML=html;
+  if (window.lucide) lucide.createIcons();
+  setTimeout(() => {
+    if (window.autoRecommendPricingTier && S.j_buyer) {
+      autoRecommendPricingTier(S.j_buyer);
+    }
+  }, 50);
 }
 
 // ═══════════════════════════════════════════════
@@ -7139,10 +7919,16 @@ function renderPiutangUsaha(E) {
                               ${rowLocked ? `
                                 <span class="lock-badge" style="font-size:10px;">${fI('🔒')} Terkunci</span>
                               ` : `
-                                <button onclick="togglePayStatus('${item.id}')" 
-                                        style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-green); color:var(--green); display:inline-flex; align-items:center; gap:4px;">
-                                  ${fI('✓')} Bayar Lunas
-                                </button>
+                                <div style="display:flex; gap:6px; align-items:center;">
+                                  <button onclick="togglePayStatus('${item.id}')" 
+                                          style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-green); color:var(--green); display:inline-flex; align-items:center; gap:4px;">
+                                    ${fI('✓')} Bayar Lunas
+                                  </button>
+                                  <button onclick="editSale('${item.id}')" 
+                                          style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-blue); color:var(--blue); display:inline-flex; align-items:center; gap:4px;" title="Edit Transaksi">
+                                    <i data-lucide="pencil" style="width:12px; height:12px;"></i> Edit
+                                  </button>
+                                </div>
                               `}
                             </td>
                           </tr>
@@ -7179,10 +7965,16 @@ function renderPiutangUsaha(E) {
                             ${rowLocked ? `
                               <span class="lock-badge" style="font-size:10px;">${fI('🔒')} Terkunci</span>
                             ` : `
-                              <button onclick="togglePayStatus('${item.id}')" 
-                                      style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-green); color:var(--green); display:inline-flex; align-items:center; gap:4px;">
-                                ${fI('✓')} Bayar Lunas
-                              </button>
+                              <div style="display:flex; gap:6px; align-items:center;">
+                                <button onclick="togglePayStatus('${item.id}')" 
+                                        style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-green); color:var(--green); display:inline-flex; align-items:center; gap:4px;">
+                                  ${fI('✓')} Bayar
+                                </button>
+                                <button onclick="editSale('${item.id}')" 
+                                        style="border:none; border-radius:6px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-sans); background:var(--bg-blue); color:var(--blue); display:inline-flex; align-items:center; gap:4px;" title="Edit Transaksi">
+                                  <i data-lucide="pencil" style="width:12px; height:12px;"></i>
+                                </button>
+                              </div>
                             `}
                           </div>
                         </div>
