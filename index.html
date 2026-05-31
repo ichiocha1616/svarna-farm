@@ -4241,6 +4241,10 @@ window.resetPriceOverride = function() {
 };
 
 function renderBuyerIntelligence(E) {
+  const activeId = document.activeElement ? document.activeElement.id : null;
+  const cursorSelStart = document.activeElement ? document.activeElement.selectionStart : null;
+  const cursorSelEnd = document.activeElement ? document.activeElement.selectionEnd : null;
+
   let list = compileBuyerAnalytics(E);
   
   // Search filter
@@ -4410,6 +4414,16 @@ function renderBuyerIntelligence(E) {
 
   document.getElementById('content').innerHTML = html;
   if (window.lucide) lucide.createIcons();
+  
+  if (activeId) {
+    const el = document.getElementById(activeId);
+    if (el) {
+      el.focus();
+      if (cursorSelStart !== null && cursorSelEnd !== null && (el.type === 'text' || el.type === 'search')) {
+        el.setSelectionRange(cursorSelStart, cursorSelEnd);
+      }
+    }
+  }
 }
 
 function drawSparkline(points, width = 160, height = 40) {
