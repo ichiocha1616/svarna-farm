@@ -1775,6 +1775,21 @@ const num = (v, fallback = 0) => {
   return isNaN(n) ? fallback : n;
 };
 
+const formatCurrencyInput = (el) => {
+  let val = el.value.replace(/\D/g, '');
+  if (!val) {
+    el.value = '';
+    return;
+  }
+  el.value = 'Rp ' + parseInt(val, 10).toLocaleString('id-ID');
+};
+
+const parseCurrency = (str) => {
+  if (!str) return 0;
+  const cleaned = str.replace(/\D/g, '');
+  return cleaned ? parseInt(cleaned, 10) : 0;
+};
+
 const fRp    = n => 'Rp\u00A0'+Math.round(num(n)).toLocaleString('id-ID');
 const today  = () => new Date().toISOString().slice(0,10);
 const fmtD   = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
@@ -2523,18 +2538,18 @@ function saveHppConfig(e) {
     return;
   }
   
-  const gajiHendra = num(document.getElementById('cfg-hendra').value);
-  const gajiMaksum = num(document.getElementById('cfg-maksum').value);
-  const gajiUser = num(document.getElementById('cfg-user').value);
-  const investasiKandang = num(document.getElementById('cfg-kandang').value);
+  const gajiHendra = parseCurrency(document.getElementById('cfg-hendra').value);
+  const gajiMaksum = parseCurrency(document.getElementById('cfg-maksum').value);
+  const gajiUser = parseCurrency(document.getElementById('cfg-user').value);
+  const investasiKandang = parseCurrency(document.getElementById('cfg-kandang').value);
   const kandangLifespanYears = num(document.getElementById('cfg-kandang-life').value);
-  const hargaPullet = num(document.getElementById('cfg-pullet').value);
+  const hargaPullet = parseCurrency(document.getElementById('cfg-pullet').value);
   const spentHenWeightKg = parseFloat(document.getElementById('cfg-spent-w').value) || 1.9;
-  const spentHenPricePerKg = num(document.getElementById('cfg-spent-p').value);
+  const spentHenPricePerKg = parseCurrency(document.getElementById('cfg-spent-p').value);
   const productiveWeeksStart = num(document.getElementById('cfg-prod-start').value);
-  const listrikAirBulan = num(document.getElementById('cfg-util').value);
-  const defaultOVKMonth = num(document.getElementById('cfg-ovk').value);
-  const defaultPakanHarga = num(document.getElementById('cfg-pakan-h').value);
+  const listrikAirBulan = parseCurrency(document.getElementById('cfg-util').value);
+  const defaultOVKMonth = parseCurrency(document.getElementById('cfg-ovk').value);
+  const defaultPakanHarga = parseCurrency(document.getElementById('cfg-pakan-h').value);
   const defaultPakanWeight = num(document.getElementById('cfg-pakan-w').value);
   
   S.hppConfig = {
@@ -3205,15 +3220,15 @@ function renderHub() {
             <div class="grid-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Hendra (Anak Kandang) (Rp)</label>
-                <input type="number" id="cfg-hendra" value="${c.gajiHendra || 0}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-hendra" value="${c.gajiHendra ? fRp(c.gajiHendra) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Maksum (Tim Ahli Pendamping) (Rp)</label>
-                <input type="number" id="cfg-maksum" value="${c.gajiMaksum || 0}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-maksum" value="${c.gajiMaksum ? fRp(c.gajiMaksum) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Operator Lapangan/Pengawas (Sagaf) (Rp)</label>
-                <input type="number" id="cfg-user" value="${c.gajiUser || 0}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-user" value="${c.gajiUser ? fRp(c.gajiUser) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
             </div>
           </div>
@@ -3226,7 +3241,7 @@ function renderHub() {
             <div class="grid-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Total Investasi Konstruksi & Alat Kandang (Rp)</label>
-                <input type="number" id="cfg-kandang" value="${c.investasiKandang || 0}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-kandang" value="${c.investasiKandang ? fRp(c.investasiKandang) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Masa Pakai / Umur Ekonomis Kandang (Tahun)</label>
@@ -3234,7 +3249,7 @@ function renderHub() {
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Harga Pembelian Awal Pullet per Ekor (Rp)</label>
-                <input type="number" id="cfg-pullet" value="${c.hargaPullet || 100000}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-pullet" value="${c.hargaPullet ? fRp(c.hargaPullet) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Estimasi Bobot Spent Hen saat Afkir (kg)</label>
@@ -3242,7 +3257,7 @@ function renderHub() {
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Harga Jual Nilai Sisa Afkir per kg (Rp)</label>
-                <input type="number" id="cfg-spent-p" value="${c.spentHenPricePerKg || 27500}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-spent-p" value="${c.spentHenPricePerKg ? fRp(c.spentHenPricePerKg) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Umur Mulai Produksi Bertelur (Minggu)</label>
@@ -3259,15 +3274,15 @@ function renderHub() {
             <div class="grid-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Biaya Listrik & Air Bulanan (Rp)</label>
-                <input type="number" id="cfg-util" value="${c.listrikAirBulan || 150000}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-util" value="${c.listrikAirBulan ? fRp(c.listrikAirBulan) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Estimasi Pengeluaran OVK per Bulan (Rp)</label>
-                <input type="number" id="cfg-ovk" value="${c.defaultOVKMonth || 1500000}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-ovk" value="${c.defaultOVKMonth ? fRp(c.defaultOVKMonth) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Harga Pakan per Karung Baseline (Rp)</label>
-                <input type="number" id="cfg-pakan-h" value="${c.defaultPakanHarga || 381000}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
+                <input type="text" inputmode="numeric" oninput="formatCurrencyInput(this)" id="cfg-pakan-h" value="${c.defaultPakanHarga ? fRp(c.defaultPakanHarga) : 'Rp 0'}" ${!isDirektur ? 'disabled' : ''} style="width:100%; padding:8px; border:1px solid var(--border2); border-radius:6px; background:var(--surface); color:var(--text1)">
               </div>
               <div>
                 <label style="display:block; font-size:10px; color:var(--text2); margin-bottom:4px; font-weight:700;">Berat Bersih Pakan per Karung (kg)</label>
