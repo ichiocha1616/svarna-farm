@@ -5795,7 +5795,8 @@ function renderLog(){
   const lHDP=last?getHDP(last.butir, last.telurRusak, last.date):null, lHPP=last?getHPP(last.kg, last.date):null;
   const breakdown = last ? getHPPBreakdown(last.kg, last.date) : null;
   const avgHDP=E.length?(E.reduce((s,e)=>s+getHDP(e.butir, e.telurRusak, e.date),0)/E.length).toFixed(1):null;
-  const prog=lHDP?Math.min((lHDP/55)*100,100):0, m=lHDP?hdpM(lHDP):null;
+  const prog=(lHDP!==null&&lHDP!==undefined)?Math.min((lHDP/55)*100,100):0;
+  const m=(lHDP!==null&&lHDP!==undefined)?hdpM(lHDP):{l:'—',c:'var(--text3)',bg:'var(--surface3)'};
 
   // Egg Stock Management calculations
   const layakJualButir = E.reduce((s, e) => s + num(e.butir), 0);
@@ -5818,7 +5819,7 @@ function renderLog(){
   document.getElementById('content').innerHTML=`
     ${E.length>0?`<div class="kpi-g fi">
       <div class="kpi"><div class="kl">HDP Terakhir</div>
-        <div class="kv" style="font-size:30px;color:${m.c}">${lHDP.toFixed(1)}<span style="font-size:15px">%</span></div>
+        <div class="kv" style="font-size:30px;color:${m.c}">${(lHDP!==null&&lHDP!==undefined)?lHDP.toFixed(1):'—'}<span style="font-size:15px">%</span></div>
         <span class="bdg" style="background:${m.bg};color:${m.c}">${m.l}</span>
         <div style="margin-top:10px">
           <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:4px"><span>0%</span><span style="color:${m.c}">55% BEP</span></div>
