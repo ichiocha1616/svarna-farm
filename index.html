@@ -381,10 +381,9 @@ body.dark #header{
 
 /* ═══ RESPONSIVE GRID LAYOUT ═══ */
 @media(min-width:900px){
-  body{display:grid;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
+  body{display:grid;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr;min-height:100vh;transition:grid-template-columns .2s ease}
   #header{grid-column:1/-1;display:flex}
   #sb-header{display:none!important}
-  .ham-btn{display:none}
   #overlay{display:none}
   #sidebar{
     grid-row:2;grid-column:1;
@@ -392,7 +391,18 @@ body.dark #header{
     height:calc(100vh - 64px);box-shadow:none;
     width:230px;padding:16px 0;overflow-y:auto;
     border-right:none;
+    transition:width .2s ease;
   }
+  body.sidebar-minimized{grid-template-columns:68px 1fr}
+  body.sidebar-minimized #sidebar{width:68px!important}
+  body.sidebar-minimized .nav-lbl-text{display:none!important}
+  body.sidebar-minimized .nav-lbl{display:none!important}
+  body.sidebar-minimized .nav-chev{display:none!important}
+  body.sidebar-minimized #sb-drive{display:none!important}
+  body.sidebar-minimized .nav-link{justify-content:center;padding:8px 0}
+  body.sidebar-minimized .nav-row{margin:1px 12px}
+  body.sidebar-minimized .nav-sub-item{justify-content:center;padding:7px 0;margin:1px 12px}
+  body.sidebar-minimized .nav-sub-item i{margin-right:0!important}
   #main-wrap{grid-row:2;grid-column:2;overflow-y:auto;height:calc(100vh - 64px)}
   #content{padding:24px 28px;gap:20px;max-width:1440px}
   .kpi-g{grid-template-columns:repeat(4,1fr)}
@@ -1561,78 +1571,78 @@ body.dark .kpi-card-exec:hover{
 
   <div class="nav-section">
     <div class="nav-lbl">BUM Desa</div>
-    <div class="nav-row" id="nr-hub" onclick="nav('hub')">
-      <div class="nav-link"><i data-lucide="building-2" class="nav-icon-lucide"></i>Dasbor Utama</div>
+    <div class="nav-row" id="nr-hub" onclick="nav('hub')" title="Dasbor Utama">
+      <div class="nav-link"><i data-lucide="building-2" class="nav-icon-lucide"></i><span class="nav-lbl-text">Dasbor Utama</span></div>
     </div>
-    <div class="nav-row" id="nr-svarna" onclick="nav('svarna')">
-      <div class="nav-link"><i data-lucide="egg" class="nav-icon-lucide"></i>Unit Svarna Farm</div>
+    <div class="nav-row" id="nr-svarna" onclick="nav('svarna')" title="Unit Svarna Farm">
+      <div class="nav-link"><i data-lucide="egg" class="nav-icon-lucide"></i><span class="nav-lbl-text">Unit Svarna Farm</span></div>
     </div>
   </div>
 
   <div class="nav-section">
     <div class="nav-lbl">Utama</div>
-    <div class="nav-row" id="nr-log" onclick="nav('log')">
-      <div class="nav-link"><i data-lucide="clipboard-list" class="nav-icon-lucide"></i>Log Produksi</div>
+    <div class="nav-row" id="nr-log" onclick="nav('log')" title="Log Produksi">
+      <div class="nav-link"><i data-lucide="clipboard-list" class="nav-icon-lucide"></i><span class="nav-lbl-text">Log Produksi</span></div>
     </div>
-    <div class="nav-row" id="nr-harga" onclick="nav('harga')">
-      <div class="nav-link"><i data-lucide="calculator" class="nav-icon-lucide"></i>Kalkulator Harga</div>
+    <div class="nav-row" id="nr-harga" onclick="nav('harga')" title="Kalkulator Harga">
+      <div class="nav-link"><i data-lucide="calculator" class="nav-icon-lucide"></i><span class="nav-lbl-text">Kalkulator Harga</span></div>
     </div>
   </div>
 
   <div class="nav-section">
     <div class="nav-lbl">Transaksi</div>
-    <div class="nav-row" id="nr-jual" onclick="navToggle('jual')">
-      <div class="nav-link"><i data-lucide="receipt" class="nav-icon-lucide"></i>Penjualan</div>
+    <div class="nav-row" id="nr-jual" onclick="navToggle('jual')" title="Penjualan">
+      <div class="nav-link"><i data-lucide="receipt" class="nav-icon-lucide"></i><span class="nav-lbl-text">Penjualan</span></div>
       <span class="nav-chev">›</span>
     </div>
     <div class="nav-sub" id="ns-jual">
-      <div class="nav-sub-item" id="nsi-jual-catat" onclick="nav('jual','catat')"><i data-lucide="pen-tool" style="width:12px;height:12px;margin-right:6px;"></i> Catat Penjualan</div>
-      <div class="nav-sub-item" id="nsi-jual-hist"  onclick="nav('jual','hist')"><i data-lucide="history" style="width:12px;height:12px;margin-right:6px;"></i> Riwayat</div>
-      <div class="nav-sub-item" id="nsi-jual-piutang" onclick="nav('jual','piutang')"><i data-lucide="file-warning" style="width:12px;height:12px;margin-right:6px;"></i> Piutang Usaha</div>
-      <div class="nav-sub-item" id="nsi-jual-intel" onclick="nav('jual','intel')"><i data-lucide="brain" style="width:12px;height:12px;margin-right:6px;"></i> Buyer Intel</div>
-      <div class="nav-sub-item" id="nsi-jual-dist" onclick="nav('jual','dist')"><i data-lucide="git-branch" style="width:12px;height:12px;margin-right:6px;"></i> Strategi Distribusi</div>
+      <div class="nav-sub-item" id="nsi-jual-catat" onclick="nav('jual','catat')" title="Catat Penjualan"><i data-lucide="pen-tool" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Catat Penjualan</span></div>
+      <div class="nav-sub-item" id="nsi-jual-hist"  onclick="nav('jual','hist')" title="Riwayat"><i data-lucide="history" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Riwayat</span></div>
+      <div class="nav-sub-item" id="nsi-jual-piutang" onclick="nav('jual','piutang')" title="Piutang Usaha"><i data-lucide="file-warning" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Piutang Usaha</span></div>
+      <div class="nav-sub-item" id="nsi-jual-intel" onclick="nav('jual','intel')" title="Buyer Intel"><i data-lucide="brain" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Buyer Intel</span></div>
+      <div class="nav-sub-item" id="nsi-jual-dist" onclick="nav('jual','dist')" title="Strategi Distribusi"><i data-lucide="git-branch" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Strategi Distribusi</span></div>
     </div>
-    <div class="nav-row" id="nr-beli" onclick="navToggle('beli')">
-      <div class="nav-link"><i data-lucide="shopping-cart" class="nav-icon-lucide"></i>Pembelian</div>
+    <div class="nav-row" id="nr-beli" onclick="navToggle('beli')" title="Pembelian">
+      <div class="nav-link"><i data-lucide="shopping-cart" class="nav-icon-lucide"></i><span class="nav-lbl-text">Pembelian</span></div>
       <span class="nav-chev">›</span>
     </div>
     <div class="nav-sub" id="ns-beli">
-      <div class="nav-sub-item" id="nsi-beli-catat" onclick="nav('beli','catat')"><i data-lucide="pen-tool" style="width:12px;height:12px;margin-right:6px;"></i> Catat Pembelian</div>
-      <div class="nav-sub-item" id="nsi-beli-hist"  onclick="nav('beli','hist')"><i data-lucide="history" style="width:12px;height:12px;margin-right:6px;"></i> Riwayat</div>
+      <div class="nav-sub-item" id="nsi-beli-catat" onclick="nav('beli','catat')" title="Catat Pembelian"><i data-lucide="pen-tool" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Catat Pembelian</span></div>
+      <div class="nav-sub-item" id="nsi-beli-hist"  onclick="nav('beli','hist')" title="Riwayat"><i data-lucide="history" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Riwayat</span></div>
     </div>
   </div>
 
   <div class="nav-section">
     <div class="nav-lbl">Analisis</div>
-    <div class="nav-row" id="nr-analitik" onclick="navToggle('analitik')">
-      <div class="nav-link"><i data-lucide="trending-up" class="nav-icon-lucide"></i>Analitik</div>
+    <div class="nav-row" id="nr-analitik" onclick="navToggle('analitik')" title="Analitik">
+      <div class="nav-link"><i data-lucide="trending-up" class="nav-icon-lucide"></i><span class="nav-lbl-text">Analitik</span></div>
       <span class="nav-chev">›</span>
     </div>
     <div class="nav-sub" id="ns-analitik">
-      <div class="nav-sub-item" id="nsi-analitik-overview" onclick="nav('analitik','overview')"><i data-lucide="bar-chart-2" style="width:12px;height:12px;margin-right:6px;"></i> Overview</div>
-      <div class="nav-sub-item" id="nsi-analitik-charts"   onclick="nav('analitik','charts')"><i data-lucide="line-chart" style="width:12px;height:12px;margin-right:6px;"></i> Grafik</div>
-      <div class="nav-sub-item" id="nsi-analitik-fcr"      onclick="nav('analitik','fcr')"><i data-lucide="microscope" style="width:12px;height:12px;margin-right:6px;"></i> FCR & Mortalitas</div>
+      <div class="nav-sub-item" id="nsi-analitik-overview" onclick="nav('analitik','overview')" title="Overview"><i data-lucide="bar-chart-2" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Overview</span></div>
+      <div class="nav-sub-item" id="nsi-analitik-charts"   onclick="nav('analitik','charts')" title="Grafik"><i data-lucide="line-chart" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">Grafik</span></div>
+      <div class="nav-sub-item" id="nsi-analitik-fcr"      onclick="nav('analitik','fcr')" title="FCR & Mortalitas"><i data-lucide="microscope" style="width:12px;height:12px;margin-right:6px;"></i><span class="nav-lbl-text">FCR & Mortalitas</span></div>
     </div>
   </div>
 
   <div class="nav-section" id="ns-absensi">
     <div class="nav-lbl">SDM & Kehadiran</div>
-    <div class="nav-row" id="nr-absensi" onclick="nav('absensi')">
-      <div class="nav-link"><i data-lucide="clipboard-check" class="nav-icon-lucide"></i>Data Absensi</div>
+    <div class="nav-row" id="nr-absensi" onclick="nav('absensi')" title="Data Absensi">
+      <div class="nav-link"><i data-lucide="clipboard-check" class="nav-icon-lucide"></i><span class="nav-lbl-text">Data Absensi</span></div>
     </div>
   </div>
 
   <div class="nav-div" id="nav-div-data"></div>
   <div class="nav-section" id="ns-data">
     <div class="nav-lbl">Data</div>
-    <div class="nav-row" onclick="exportJSON()"><div class="nav-link"><i data-lucide="download" class="nav-icon-lucide"></i>Export JSON</div></div>
-    <div class="nav-row" onclick="importJSON()"><div class="nav-link"><i data-lucide="upload" class="nav-icon-lucide"></i>Import JSON</div></div>
-    <div class="nav-row" id="nr-db" onclick="nav('db')"><div class="nav-link" style="color:var(--gold)"><i data-lucide="database" class="nav-icon-lucide" style="color:var(--gold)"></i>Audit & Sync DB</div></div>
+    <div class="nav-row" onclick="exportJSON()" title="Export JSON"><div class="nav-link"><i data-lucide="download" class="nav-icon-lucide"></i><span class="nav-lbl-text">Export JSON</span></div></div>
+    <div class="nav-row" onclick="importJSON()" title="Import JSON"><div class="nav-link"><i data-lucide="upload" class="nav-icon-lucide"></i><span class="nav-lbl-text">Import JSON</span></div></div>
+    <div class="nav-row" id="nr-db" onclick="nav('db')" title="Audit & Sync DB"><div class="nav-link" style="color:var(--gold)"><i data-lucide="database" class="nav-icon-lucide" style="color:var(--gold)"></i><span class="nav-lbl-text">Audit & Sync DB</span></div></div>
   </div>
 
   <div class="nav-div" id="nav-div-logout"></div>
   <div class="nav-section" id="ns-logout">
-    <div class="nav-row" onclick="logout()"><div class="nav-link" style="color:var(--red)"><i data-lucide="log-out" class="nav-icon-lucide" style="color:var(--red)"></i>Keluar (Logout)</div></div>
+    <div class="nav-row" onclick="logout()" title="Keluar (Logout)"><div class="nav-link" style="color:var(--red)"><i data-lucide="log-out" class="nav-icon-lucide" style="color:var(--red)"></i><span class="nav-lbl-text">Keluar (Logout)</span></div></div>
   </div>
 
   <div id="sb-drive">
@@ -4144,8 +4154,14 @@ function applyTheme(){
   }
 }
 function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('open');
+  if (window.innerWidth >= 900) {
+    document.body.classList.toggle('sidebar-minimized');
+    const minimized = document.body.classList.contains('sidebar-minimized');
+    localStorage.setItem('sf-sidebar-minimized', minimized ? '1' : '0');
+  } else {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('open');
+  }
 }
 function closeSidebar(){
   document.getElementById('sidebar').classList.remove('open');
@@ -9595,6 +9611,9 @@ function makeLogoTransparent(imgId) {
 // ═══════════════════════════════════════════════
 window.addEventListener('load', async ()=>{
   LS.load();
+  if (localStorage.getItem('sf-sidebar-minimized') === '1' && window.innerWidth >= 900) {
+    document.body.classList.add('sidebar-minimized');
+  }
   applyTheme();
   render(); // Render UI immediately so screen is NEVER blank
   
