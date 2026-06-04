@@ -1763,6 +1763,16 @@ const fmtD   = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${d
 const todayFmt=()=>new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
 
 const getInitialBirds = () => num(S.flock?.initialBirds, 1000);
+const getActiveBirdsAtDate = (date) => {
+  let total = getInitialBirds();
+  if (date && S.logEntries) {
+    const deathsBeforeOrOnDate = S.logEntries
+      .filter(e => e.date <= date)
+      .reduce((sum, e) => sum + num(e.ayamMati), 0);
+    total = Math.max(0, getInitialBirds() - deathsBeforeOrOnDate);
+  }
+  return total;
+};
 const getInitialPakan = () => num(S.flock?.initialPakan, 1000);
 const getChickenAge = (targetDateStr) => {
   if (!S.flock || !S.flock.arrivalDate) return { weeks: 0, days: 0, totalDays: 0 };
@@ -1840,13 +1850,7 @@ const fI = (emoji, cls = '') => {
 // Robust calculations
 const getHDP = (b, r = 0, date = null) => {
   const butir = num(b) + num(r);
-  let total = getInitialBirds();
-  if (date && S.logEntries) {
-    const deathsBeforeOrOnDate = S.logEntries
-      .filter(e => e.date <= date)
-      .reduce((sum, e) => sum + num(e.ayamMati), 0);
-    total = Math.max(0, getInitialBirds() - deathsBeforeOrOnDate);
-  }
+  const total = date ? getActiveBirdsAtDate(date) : getInitialBirds();
   return total > 0 ? (butir / total) * 100 : 0;
 };
 
@@ -6522,6 +6526,35 @@ function submitOpLog() {
     }
   }
   
+  // Chicken Age & Feed Validation based on pre-laying/laying status
+  const age = getChickenAge(S.opDate);
+  const activeBirds = getActiveBirdsAtDate(S.opDate);
+  
+  if (age.weeks < 18) {
+    // Pre-laying phase validation
+    if (butir > 0 || telurRusak > 0) {
+      const confirmProceed = confirm(`⚠️ Perhatian: Usia ayam baru ${age.weeks} minggu ${age.days} hari (fase pre-laying / belum produktif bertelur).\n\nApakah Anda yakin ada produksi telur sebanyak ${butir + telurRusak} butir pada tanggal ini?`);
+      if (!confirmProceed) return;
+    }
+    
+    if (kgPakan > 0 && activeBirds > 0) {
+      const feedPerBirdG = (kgPakan * 1000) / activeBirds;
+      if (feedPerBirdG < 50 || feedPerBirdG > 115) {
+        const confirmProceed = confirm(`⚠️ Perhatian: Konsumsi pakan per ekor adalah ${feedPerBirdG.toFixed(1)} gram/hari.\n\nTakaran normal pakan untuk ayam usia ${age.weeks} minggu di fase pre-laying adalah sekitar 50g sampai 115g per ekor/hari. Apakah Anda yakin data pakan ini (${kgPakan} kg untuk ${activeBirds} ekor) sudah benar?`);
+        if (!confirmProceed) return;
+      }
+    }
+  } else {
+    // Laying phase validation
+    if (kgPakan > 0 && activeBirds > 0) {
+      const feedPerBirdG = (kgPakan * 1000) / activeBirds;
+      if (feedPerBirdG < 90 || feedPerBirdG > 140) {
+        const confirmProceed = confirm(`⚠️ Perhatian: Konsumsi pakan per ekor adalah ${feedPerBirdG.toFixed(1)} gram/hari.\n\nTakaran normal pakan untuk ayam produktif (>18 minggu) adalah sekitar 90g sampai 140g per ekor/hari. Apakah Anda yakin data pakan ini (${kgPakan} kg untuk ${activeBirds} ekor) sudah benar?`);
+        if (!confirmProceed) return;
+      }
+    }
+  }
+  
   const entry = {
     date: S.opDate,
     butir: butir,
@@ -8046,7 +8079,17 @@ function updJualTotal(){
   const jd=S.j_date||today();
   const isTelur=S.j_item==='Telur';
   
-  if (isTelur && !S.j_manualOverride) {
+  let hasRecommendedTier = false;
+  if (S.j_buyer) {
+    const E_all = S.salesEntries.filter(e => !e.deleted);
+    const analytics = compileBuyerAnalytics(E_all);
+    const foundBuyer = analytics.find(b => b.name.toLowerCase() === S.j_buyer.toLowerCase().trim());
+    if (foundBuyer) {
+      hasRecommendedTier = true;
+    }
+  }
+
+  if (isTelur && !S.j_manualOverride && !hasRecommendedTier) {
     const newType = kg >= S.j_grosirMinWeight ? 'grosir' : 'eceran';
     if (S.j_type !== newType) {
       S.j_type = newType;
@@ -8672,26 +8715,61 @@ async function auditLocalDatabase() {
   </div>`;
   
   try {
-    // Fetch all active transaction IDs from Cloud Firestore
-    const salesSnap = await db.collection('salesEntries').get();
+    // Fetch all active records from Cloud Firestore in parallel
+    const [salesSnap, logsSnap, purchasesSnap, attendanceSnap] = await Promise.all([
+      db.collection('salesEntries').get(),
+      db.collection('logEntries').get(),
+      db.collection('purchaseEntries').get(),
+      db.collection('attendanceLogs').get()
+    ]);
+    
     const cloudSalesIds = new Set();
-    salesSnap.forEach(doc => {
-      cloudSalesIds.add(doc.id);
-    });
+    salesSnap.forEach(doc => cloudSalesIds.add(doc.id));
     
-    // Find local sales that do not exist in the Cloud
-    const unsyncedSales = S.salesEntries.filter(s => !s.deleted && !cloudSalesIds.has(s.id));
+    const cloudLogsIds = new Set();
+    logsSnap.forEach(doc => cloudLogsIds.add(doc.id));
     
-    if (unsyncedSales.length === 0) {
+    const cloudPurchasesIds = new Set();
+    purchasesSnap.forEach(doc => cloudPurchasesIds.add(doc.id));
+    
+    const cloudAttendanceIds = new Set();
+    attendanceSnap.forEach(doc => cloudAttendanceIds.add(doc.id));
+    
+    // Find local entries that do not exist in the Cloud (unsynced)
+    const unsyncedSales = (S.salesEntries || []).filter(s => !s.deleted && !cloudSalesIds.has(s.id));
+    const unsyncedLogs = (S.logEntries || []).filter(l => !cloudLogsIds.has(l.date));
+    const unsyncedPurchases = (S.purchaseEntries || []).filter(p => !p.deleted && !cloudPurchasesIds.has(p.id));
+    const unsyncedAttendance = (S.attendanceLogs || []).filter(a => !cloudAttendanceIds.has(a.id));
+    
+    const totalDiscrepancies = unsyncedSales.length + unsyncedLogs.length + unsyncedPurchases.length + unsyncedAttendance.length;
+    
+    if (totalDiscrepancies === 0) {
       container.innerHTML = `
-        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:15px; text-align:center; color:var(--green); font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;">
-          ${fI('✓')} Semua transaksi penjualan lokal Anda 100% cocok dengan Cloud Database.
+        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:20px; text-align:center; color:var(--green); font-size:13px; font-weight:600; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+          <span style="font-size:24px;">✓</span>
+          Semua data lokal Anda (Log Produksi, Penjualan, Pembelian, & Absensi) 100% cocok dengan Cloud Database.
         </div>
       `;
-    } else {
-      let tblRows = '';
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+    
+    let html = `
+      <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:12px; padding:15px; margin-bottom:15px;">
+        <div style="color:var(--amber); font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          ${fI('⚠️')} Deteksi Selisih: Ditemukan ${totalDiscrepancies} data lokal yang tidak tercatat di Cloud
+        </div>
+        <p style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin:0;">
+          Data di bawah ini ada di memori perangkat ini tetapi tidak ditemukan di database Cloud Firestore. Ini terjadi jika diinput saat offline atau telah dihapus dari perangkat lain. Anda dapat menghapus data lokal ini agar sinkron dengan Cloud.
+        </p>
+      </div>
+    `;
+    
+    // Render unsynced sales
+    if (unsyncedSales.length > 0) {
+      let rows = '';
       unsyncedSales.forEach(s => {
-        tblRows += `
+        rows += `
           <tr style="border-bottom:1px solid var(--border-subtle);">
             <td style="padding:10px 8px; font-weight:600; color:var(--text-primary);">${s.date}</td>
             <td style="padding:10px 8px; color:var(--text-secondary);">${s.buyer || 'Tanpa Nama'}</td>
@@ -8705,15 +8783,11 @@ async function auditLocalDatabase() {
           </tr>
         `;
       });
-      
-      container.innerHTML = `
-        <div style="background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.2); border-radius:12px; padding:15px; margin-bottom:15px;">
-          <div style="color:var(--amber); font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-            ${fI('⚠️')} Deteksi Selisih: Ditemukan ${unsyncedSales.length} transaksi lokal yang tidak tercatat di Cloud
-          </div>
-          <p style="font-size:12px; color:var(--text-secondary); line-height:1.4; margin:0 0 12px 0;">
-            Transaksi di bawah ini ada di memori perangkat ini tetapi tidak ada di database Cloud Firestore. Ini biasanya terjadi jika transaksi diinput saat koneksi terputus atau telah dihapus di perangkat lain. Anda dapat menghapus data lokal ini agar sama dengan database cloud.
-          </p>
+      html += `
+        <div class="card cp" style="margin-bottom:15px; padding:16px;">
+          <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:var(--gold); display:flex; align-items:center; gap:6px;">
+            ${fI('🛒')} Transaksi Penjualan (${unsyncedSales.length})
+          </h4>
           <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
               <thead>
@@ -8726,13 +8800,144 @@ async function auditLocalDatabase() {
                 </tr>
               </thead>
               <tbody>
-                ${tblRows}
+                ${rows}
               </tbody>
             </table>
           </div>
         </div>
       `;
     }
+    
+    // Render unsynced logs
+    if (unsyncedLogs.length > 0) {
+      let rows = '';
+      unsyncedLogs.forEach(l => {
+        rows += `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 8px; font-weight:600; color:var(--text-primary);">${l.date}</td>
+            <td style="padding:10px 8px; color:var(--gold); font-weight:600;">${l.butir} btr (${l.kg} kg)</td>
+            <td style="padding:10px 8px; color:var(--text-secondary);">${l.kgPakan ? l.kgPakan + ' kg' : '—'}</td>
+            <td style="padding:10px 8px; color:var(--red);">${l.ayamMati ? l.ayamMati + ' ekor' : '—'}</td>
+            <td style="padding:10px 8px;">
+              <button class="btn" style="background:rgba(224,85,85,0.08); color:var(--red); border:1px solid rgba(224,85,85,0.2); padding:4px 8px; font-size:10px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="deleteUnsyncedLog('${l.date}')">
+                Hapus Lokal
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      html += `
+        <div class="card cp" style="margin-bottom:15px; padding:16px;">
+          <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:var(--gold); display:flex; align-items:center; gap:6px;">
+            ${fI('🥚')} Log Produksi Harian (${unsyncedLogs.length})
+          </h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1.5px solid var(--border); color:var(--text-secondary);">
+                  <th style="padding:8px;">Tanggal</th>
+                  <th style="padding:8px;">Hasil Telur</th>
+                  <th style="padding:8px;">Pakan</th>
+                  <th style="padding:8px;">Mati</th>
+                  <th style="padding:8px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Render unsynced purchases
+    if (unsyncedPurchases.length > 0) {
+      let rows = '';
+      unsyncedPurchases.forEach(p => {
+        rows += `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 8px; font-weight:600; color:var(--text-primary);">${p.date}</td>
+            <td style="padding:10px 8px; color:var(--text-primary);">${p.item}</td>
+            <td style="padding:10px 8px; color:var(--text-secondary);">${p.cat ? p.cat.toUpperCase() : 'LAIN'}</td>
+            <td style="padding:10px 8px; color:var(--text-primary); font-weight:600;">${fRp(p.total)}</td>
+            <td style="padding:10px 8px;">
+              <button class="btn" style="background:rgba(224,85,85,0.08); color:var(--red); border:1px solid rgba(224,85,85,0.2); padding:4px 8px; font-size:10px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="deleteUnsyncedPurchase('${p.id}')">
+                Hapus Lokal
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      html += `
+        <div class="card cp" style="margin-bottom:15px; padding:16px;">
+          <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:var(--gold); display:flex; align-items:center; gap:6px;">
+            ${fI('🛒')} Transaksi Pembelian (${unsyncedPurchases.length})
+          </h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1.5px solid var(--border); color:var(--text-secondary);">
+                  <th style="padding:8px;">Tanggal</th>
+                  <th style="padding:8px;">Item</th>
+                  <th style="padding:8px;">Kategori</th>
+                  <th style="padding:8px;">Total</th>
+                  <th style="padding:8px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Render unsynced attendance
+    if (unsyncedAttendance.length > 0) {
+      let rows = '';
+      unsyncedAttendance.forEach(a => {
+        rows += `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 8px; font-weight:600; color:var(--text-primary);">${a.date}</td>
+            <td style="padding:10px 8px; color:var(--text-primary);">${a.name || '—'}</td>
+            <td style="padding:10px 8px; color:var(--text-secondary);">${a.clockInTime || '—'}</td>
+            <td style="padding:10px 8px; color:var(--text-secondary);">${a.clockOutTime || '—'}</td>
+            <td style="padding:10px 8px;">
+              <button class="btn" style="background:rgba(224,85,85,0.08); color:var(--red); border:1px solid rgba(224,85,85,0.2); padding:4px 8px; font-size:10px; font-weight:700; border-radius:6px; cursor:pointer;" onclick="deleteUnsyncedAttendance('${a.id}')">
+                Hapus Lokal
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      html += `
+        <div class="card cp" style="margin-bottom:15px; padding:16px;">
+          <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:700; color:var(--gold); display:flex; align-items:center; gap:6px;">
+            ${fI('⏳')} Log Absensi Operator (${unsyncedAttendance.length})
+          </h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1.5px solid var(--border); color:var(--text-secondary);">
+                  <th style="padding:8px;">Tanggal</th>
+                  <th style="padding:8px;">Nama</th>
+                  <th style="padding:8px;">Jam Masuk</th>
+                  <th style="padding:8px;">Jam Keluar</th>
+                  <th style="padding:8px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    container.innerHTML = html;
     if (window.lucide) lucide.createIcons();
   } catch(e) {
     container.innerHTML = `<div style="color:var(--red);font-size:12px;padding:10px;border:1px solid rgba(224,85,85,0.2);border-radius:10px;background:rgba(224,85,85,0.08)">
@@ -8745,10 +8950,46 @@ function deleteUnsyncedSale(id) {
   const sale = S.salesEntries.find(e => e.id === id);
   if (!sale) return;
   
-  const confirmProceed = confirm(`Hapus transaksi lokal ini?\n\nTanggal: ${sale.date}\nPembeli: ${sale.buyer || 'Tanpa Nama'}\nBerat: ${sale.kg} kg\nTotal: ${fRp(sale.total)}\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
+  const confirmProceed = confirm(`Hapus transaksi penjualan lokal ini?\n\nTanggal: ${sale.date}\nPembeli: ${sale.buyer || 'Tanpa Nama'}\nBerat: ${sale.kg} kg\nTotal: ${fRp(sale.total)}\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
   if (!confirmProceed) return;
   
   S.salesEntries = S.salesEntries.filter(e => e.id !== id);
+  LS.save();
+  auditLocalDatabase();
+}
+
+function deleteUnsyncedLog(date) {
+  const log = S.logEntries.find(e => e.date === date);
+  if (!log) return;
+  
+  const confirmProceed = confirm(`Hapus log produksi lokal ini?\n\nTanggal: ${log.date}\nButir: ${log.butir} btr\nBerat: ${log.kg} kg\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
+  if (!confirmProceed) return;
+  
+  S.logEntries = S.logEntries.filter(e => e.date !== date);
+  LS.save();
+  auditLocalDatabase();
+}
+
+function deleteUnsyncedPurchase(id) {
+  const p = S.purchaseEntries.find(e => e.id === id);
+  if (!p) return;
+  
+  const confirmProceed = confirm(`Hapus transaksi pembelian lokal ini?\n\nTanggal: ${p.date}\nItem: ${p.item}\nTotal: ${fRp(p.total)}\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
+  if (!confirmProceed) return;
+  
+  S.purchaseEntries = S.purchaseEntries.filter(e => e.id !== id);
+  LS.save();
+  auditLocalDatabase();
+}
+
+function deleteUnsyncedAttendance(id) {
+  const a = S.attendanceLogs.find(e => e.id === id);
+  if (!a) return;
+  
+  const confirmProceed = confirm(`Hapus log absensi lokal ini?\n\nTanggal: ${a.date}\nNama: ${a.name || '—'}\nJam Masuk: ${a.clockInTime || '—'}\nJam Keluar: ${a.clockOutTime || '—'}\n\nTindakan ini hanya menghapus cache lokal di perangkat ini dan tidak memengaruhi cloud.`);
+  if (!confirmProceed) return;
+  
+  S.attendanceLogs = S.attendanceLogs.filter(e => e.id !== id);
   LS.save();
   auditLocalDatabase();
 }
