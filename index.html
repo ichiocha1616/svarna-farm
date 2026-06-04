@@ -383,13 +383,14 @@ body.dark #header{
 @media(min-width:900px){
   body{display:grid;grid-template-columns:230px 1fr;grid-template-rows:auto 1fr;min-height:100vh}
   #header{grid-column:1/-1;display:flex}
+  #sb-header{display:none!important}
   .ham-btn{display:none}
   #overlay{display:none}
   #sidebar{
     grid-row:2;grid-column:1;
     position:static;transform:none!important;visibility:visible!important;
     height:calc(100vh - 64px);box-shadow:none;
-    width:230px;padding-bottom:16px;overflow-y:auto;
+    width:230px;padding:16px 0;overflow-y:auto;
     border-right:none;
   }
   #main-wrap{grid-row:2;grid-column:2;overflow-y:auto;height:calc(100vh - 64px)}
