@@ -7237,17 +7237,17 @@ function renderSvarna() {
           </div>
           <div class="field" style="margin:0; flex:1;">
             <label style="font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase;">Umur Awal (Minggu)</label>
-            <input type="number" id="cfg-initialAgeWeeks" class="inp" value="${S.flock.initialAgeWeeks || 14}">
+            <input type="number" id="cfg-initialAgeWeeks" class="inp" value="${(S.flock.initialAgeWeeks !== undefined && S.flock.initialAgeWeeks !== null) ? S.flock.initialAgeWeeks : 14}">
           </div>
         </div>
         <div class="frow" style="gap:16px; margin-bottom:16px;">
           <div class="field" style="margin:0; flex:1;">
             <label style="font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase;">Jumlah Ayam Awal (ekor)</label>
-            <input type="number" id="cfg-initialBirds" class="inp" value="${S.flock.initialBirds || 1000}">
+            <input type="number" id="cfg-initialBirds" class="inp" value="${(S.flock.initialBirds !== undefined && S.flock.initialBirds !== null) ? S.flock.initialBirds : 1000}">
           </div>
           <div class="field" style="margin:0; flex:1;">
             <label style="font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase;">Stok Pakan Awal (kg)</label>
-            <input type="number" id="cfg-initialPakan" class="inp" value="${S.flock.initialPakan || 1000}">
+            <input type="number" id="cfg-initialPakan" class="inp" value="${(S.flock.initialPakan !== undefined && S.flock.initialPakan !== null) ? S.flock.initialPakan : 1000}">
           </div>
         </div>
         <div class="frow" style="gap:16px; margin-bottom:20px;">
