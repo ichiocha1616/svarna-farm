@@ -2726,8 +2726,12 @@ function renderHub() {
     
     // Trend Chart HPP vs Acuan (filtered to avoid ramp-up distortion)
     const normalEntries = S.logEntries.filter(e => num(e.kg) >= 5);
-    const chartEntries = normalEntries.length >= 2 ? normalEntries : S.logEntries.filter(e => num(e.kg) > 0);
-    const trendPtsHpp = chartEntries.slice(-30).map(e => { const h = getHPP(e.kg, e.date) || 0; return { v: h > 40000 ? 40000 : h, l: fmtD(e.date) }; });
+    const chartEntries = (normalEntries.length >= 2 ? normalEntries : S.logEntries.filter(e => num(e.kg) > 0))
+      .filter(e => {
+        const h = getHPP(e.kg, e.date);
+        return h !== null && h !== undefined;
+      });
+    const trendPtsHpp = chartEntries.slice(-30).map(e => { const h = getHPP(e.kg, e.date); return { v: h > 40000 ? 40000 : h, l: fmtD(e.date) }; });
     const trendPtsAcuan = chartEntries.slice(-30).map(e => {
       const act = [...S.priceHistory].reverse().find(h => h.date <= e.date);
       const acuanVal = act ? num(act.acuan) : FLOOR_PRICE;
@@ -7709,10 +7713,17 @@ function renderAnalitik(){
   const lastHPP=E.length?getHPP(E[E.length-1].kg, E[E.length-1].date):null;
   const avgHDP=E.length?(E.reduce((s,e)=>s+getHDP(e.butir, e.telurRusak, e.date),0)/E.length):0;
   const hdpPts=E.slice(-30).map(e=>({v:getHDP(e.butir, e.telurRusak, e.date),l:fmtD(e.date)}));
+  const productiveWeeksStart = num(S.hppConfig?.productiveWeeksStart, 20);
   const normalEntriesA = E.filter(e => num(e.kg) >= 5);
-  const chartEntriesA = normalEntriesA.length >= 2 ? normalEntriesA : E.filter(e => num(e.kg) > 0);
-  const hppPts = chartEntriesA.slice(-30).map(e => { const h = getHPP(e.kg, e.date) || 0; return { v: h > 40000 ? 40000 : h, l: fmtD(e.date) }; });
-  const fcrPts=E.filter(e=>num(e.kgPakan)>0&&num(e.kg)>0).slice(-20).map(e=>({v:+(num(e.kgPakan)/num(e.kg)).toFixed(2),l:fmtD(e.date)}));
+  const chartEntriesA = (normalEntriesA.length >= 2 ? normalEntriesA : E.filter(e => num(e.kg) > 0))
+    .filter(e => {
+      const h = getHPP(e.kg, e.date);
+      return h !== null && h !== undefined;
+    });
+  const hppPts = chartEntriesA.slice(-30).map(e => { const h = getHPP(e.kg, e.date); return { v: h > 40000 ? 40000 : h, l: fmtD(e.date) }; });
+  const fcrPts = E.filter(e => num(e.kgPakan) > 0 && num(e.kg) > 0 && getChickenAge(e.date).weeks >= productiveWeeksStart)
+    .slice(-20)
+    .map(e => ({ v: +(num(e.kgPakan)/num(e.kg)).toFixed(2), l: fmtD(e.date) }));
 
   const activeSales = S.salesEntries.filter(e => !e.deleted);
 
