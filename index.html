@@ -2161,8 +2161,31 @@ function getPakanStock() {
   
   const totalPakai = (S.logEntries || []).reduce((sum, e) => sum + num(e.kgPakan), 0);
   
+  // Calculate rearing phase consumption if we have flock arrival info
+  let rearingPakai = 0;
+  if (S.flock && S.flock.arrivalDate) {
+    const arrival = new Date(S.flock.arrivalDate);
+    const startAgeWeeks = num(S.flock.initialAgeWeeks, 14);
+    const productiveWeeksStart = num(S.hppConfig?.productiveWeeksStart, 20);
+    if (startAgeWeeks < productiveWeeksStart) {
+      const rearingDays = (productiveWeeksStart - startAgeWeeks) * 7;
+      for (let d = 0; d < rearingDays; d++) {
+        const currentDate = new Date(arrival);
+        currentDate.setDate(arrival.getDate() + d);
+        const dateStr = currentDate.toISOString().slice(0, 10);
+        
+        // If this date is not in S.logEntries, we subtract the calculated daily rearing consumption
+        const hasLog = (S.logEntries || []).some(e => e.date === dateStr && num(e.kgPakan) > 0);
+        if (!hasLog) {
+          const activeBirds = getActiveBirdsAtDate(dateStr);
+          rearingPakai += activeBirds * num(S.hppConfig?.rearingFeedIntakePerBirdPerDay, 0.08);
+        }
+      }
+    }
+  }
+  
   const initialStock = getInitialPakan();
-  return Math.max(0, initialStock + totalBeli - totalPakai);
+  return Math.max(0, initialStock + totalBeli - totalPakai - rearingPakai);
 }
 
 // Multi-series SVG Line chart
