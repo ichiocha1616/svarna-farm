@@ -5157,6 +5157,159 @@ window.showBuyerProfileModal = function(buyerName) {
   const sortedMonths = Object.keys(monthlyData).sort().slice(-6);
   const sparkPoints = sortedMonths.map(m => monthlyData[m]);
 
+  // Generate monthly purchase history (last 12 calendar months)
+  const todayDate = new Date();
+  const currentY = todayDate.getFullYear();
+  const currentM = todayDate.getMonth(); // 0-11
+  
+  let firstTrxMonth = `${currentY}-${String(currentM + 1).padStart(2, '0')}`;
+  if (b.transactions && b.transactions.length > 0) {
+    const sortedTrx = [...b.transactions].sort((x, y) => x.date.localeCompare(y.date));
+    firstTrxMonth = sortedTrx[0].date.slice(0, 7);
+  }
+  
+  const [fYear, fMonth] = firstTrxMonth.split('-').map(Number);
+  const monthsInHistory = [];
+  let yIter = fYear;
+  let mIter = fMonth - 1;
+  
+  while (yIter < currentY || (yIter === currentY && mIter <= currentM)) {
+    const monthStr = `${yIter}-${String(mIter + 1).padStart(2, '0')}`;
+    monthsInHistory.push(monthStr);
+    mIter++;
+    if (mIter > 11) {
+      mIter = 0;
+      yIter++;
+    }
+  }
+  
+  const monthlyMetrics = monthsInHistory.map((mStr, idx) => {
+    let volume = 0;
+    let revenue = 0;
+    let trxCount = 0;
+    
+    b.transactions.forEach(t => {
+      if (t.date.startsWith(mStr)) {
+        volume += num(t.kg);
+        revenue += num(t.total);
+        trxCount++;
+      }
+    });
+    
+    let prevVolume = 0;
+    if (idx > 0) {
+      const prevMStr = monthsInHistory[idx - 1];
+      b.transactions.forEach(t => {
+        if (t.date.startsWith(prevMStr)) {
+          prevVolume += num(t.kg);
+        }
+      });
+    }
+    
+    let momChange = 0;
+    let hasPrev = idx > 0;
+    if (hasPrev) {
+      if (prevVolume > 0) {
+        momChange = ((volume - prevVolume) / prevVolume) * 100;
+      } else if (volume > 0) {
+        momChange = 100;
+      } else {
+        momChange = 0;
+      }
+    }
+    
+    return {
+      monthStr: mStr,
+      volume,
+      revenue,
+      trxCount,
+      prevVolume,
+      momChange,
+      hasPrev,
+      avgPrice: volume > 0 ? revenue / volume : 0
+    };
+  });
+  
+  const displayMetrics = monthlyMetrics.slice(-12).reverse();
+  const getIndoMonthName = (yyyy_mm) => {
+    const [yr, mn] = yyyy_mm.split('-');
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return `${months[parseInt(mn) - 1]} ${yr}`;
+  };
+
+  // Pricing Recommendation Alert Box based on latest MoM trend
+  let alertHtml = '';
+  const currentMetric = monthlyMetrics[monthlyMetrics.length - 1];
+  const prevMetric = monthlyMetrics.length >= 2 ? monthlyMetrics[monthlyMetrics.length - 2] : null;
+  
+  if (currentMetric) {
+    const curVol = currentMetric.volume;
+    const prevVol = prevMetric ? prevMetric.volume : 0;
+    
+    if (prevVol > 0) {
+      const diff = curVol - prevVol;
+      const pct = (diff / prevVol) * 100;
+      
+      if (pct < -15) {
+        alertHtml = `
+          <div style="background:var(--bg-red); border:1px solid rgba(224,85,85,0.2); border-radius:8px; padding:12px; display:flex; align-items:flex-start; gap:10px; margin-bottom:16px;">
+            <i data-lucide="trending-down" style="width:20px; height:20px; color:var(--red); flex-shrink:0; margin-top:2px;"></i>
+            <div style="font-size:12px; color:var(--text1); line-height:1.4;">
+              <strong style="color:var(--red); display:block; margin-bottom:2px;">Penurunan Performa Volume Jual (${pct.toFixed(1)}%)</strong>
+              Pembelian ${b.name} bulan ini (<b>${curVol.toFixed(1)} kg</b>) mengalami penurunan dibanding bulan lalu (<b>${prevVol.toFixed(1)} kg</b>). 
+              Jika performa terus menurun, Anda memiliki dasar kuat untuk menaikkan harga dari tier distributor kembali ke <b>Tier Grosir (Retail Partner Tier)</b>.
+            </div>
+          </div>
+        `;
+      } else if (pct > 15) {
+        alertHtml = `
+          <div style="background:var(--bg-green); border:1px solid rgba(34,197,94,0.2); border-radius:8px; padding:12px; display:flex; align-items:flex-start; gap:10px; margin-bottom:16px;">
+            <i data-lucide="trending-up" style="width:20px; height:20px; color:var(--green); flex-shrink:0; margin-top:2px;"></i>
+            <div style="font-size:12px; color:var(--text1); line-height:1.4;">
+              <strong style="color:var(--green); display:block; margin-bottom:2px;">Peningkatan Performa Volume Jual (+${pct.toFixed(1)}%)</strong>
+              Pembelian ${b.name} naik signifikan dari <b>${prevVol.toFixed(1)} kg</b> ke <b>${curVol.toFixed(1)} kg</b>. 
+              Mitra ini berhak mendapatkan loyalitas <b>Tier Distributor (Harga Murah)</b> atau prioritas pasokan stok.
+            </div>
+          </div>
+        `;
+      } else {
+        alertHtml = `
+          <div style="background:var(--surface2); border:1px solid var(--border-subtle); border-radius:8px; padding:12px; display:flex; align-items:flex-start; gap:10px; margin-bottom:16px;">
+            <i data-lucide="activity" style="width:20px; height:20px; color:var(--gold); flex-shrink:0; margin-top:2px;"></i>
+            <div style="font-size:12px; color:var(--text1); line-height:1.4;">
+              <strong style="color:var(--gold); display:block; margin-bottom:2px;">Volume Pembelian Stabil (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</strong>
+              Pembelian ${b.name} stabil di angka <b>${curVol.toFixed(1)} kg</b> (bulan lalu: <b>${prevVol.toFixed(1)} kg</b>). 
+              Rekomendasi: pertahankan tier harga saat ini.
+            </div>
+          </div>
+        `;
+      }
+    } else if (curVol > 0) {
+      alertHtml = `
+        <div style="background:var(--bg-blue); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:12px; display:flex; align-items:flex-start; gap:10px; margin-bottom:16px;">
+          <i data-lucide="user-plus" style="width:20px; height:20px; color:var(--blue); flex-shrink:0; margin-top:2px;"></i>
+          <div style="font-size:12px; color:var(--text1); line-height:1.4;">
+            <strong style="color:var(--blue); display:block; margin-bottom:2px;">Mitra / Pelanggan Baru Bulan Ini</strong>
+            Pembelian perdana/aktif kembali di bulan ini sebesar <b>${curVol.toFixed(1)} kg</b>. Pantau tren pembelian dalam bulan-bulan berikutnya.
+          </div>
+        </div>
+      `;
+    } else {
+      alertHtml = `
+        <div style="background:var(--bg-red); border:1px solid rgba(224,85,85,0.2); border-radius:8px; padding:12px; display:flex; align-items:flex-start; gap:10px; margin-bottom:16px;">
+          <i data-lucide="alert-triangle" style="width:20px; height:20px; color:var(--red); flex-shrink:0; margin-top:2px;"></i>
+          <div style="font-size:12px; color:var(--text1); line-height:1.4;">
+            <strong style="color:var(--red); display:block; margin-bottom:2px;">Tidak Ada Pembelian</strong>
+            Belum ada pembelian dari ${b.name} dalam 2 bulan terakhir. Hubungi pembeli untuk memicu pesanan kembali.
+          </div>
+        </div>
+      `;
+    }
+  }
+
   document.getElementById('buyer-profile-modal')?.remove();
 
   const modal = document.createElement('div');
@@ -5178,95 +5331,165 @@ window.showBuyerProfileModal = function(buyerName) {
   else if (b.relationshipScore >= 50) scoreColor = 'var(--gold)';
 
   modal.innerHTML = `
-    <div class="card" style="max-width:650px;width:95%;padding:24px;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,0.3);background:${S.dark?'var(--surface1)':'#fff'}; display:flex; flex-direction:column; gap:20px;">
+    <div class="card" style="max-width:850px;width:95%;padding:24px;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,0.3);background:${S.dark?'var(--surface1)':'#fff'}; display:flex; flex-direction:column; gap:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
-        <h3 style="margin:0; font-family:'Playfair Display',serif; color:var(--text1);">${b.name}</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <i data-lucide="user" style="width:20px; height:20px; color:var(--gold);"></i>
+          <h3 style="margin:0; font-family:'Playfair Display',serif; color:var(--text1);">${b.name}</h3>
+        </div>
         <button onclick="document.getElementById('buyer-profile-modal').remove()" style="background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer;">&times;</button>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr; md:grid-template-columns:1.2fr 1fr; gap:20px; overflow-y:auto; max-height:70vh;">
-        <!-- Left Column: Metrics -->
-        <div style="display:flex; flex-direction:column; gap:16px;">
-          <div>
-            <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase;">Kesehatan Kemitraan</span>
-            <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
-              <div style="font-size:28px; font-weight:900; color:${scoreColor}; font-family:var(--font-mono);">${b.relationshipScore}<span style="font-size:14px; color:var(--text3); font-weight:500;">/100</span></div>
-              <div style="font-size:11px; color:var(--text2); line-height:1.3;">
-                <b>${b.relationshipScore >= 80 ? 'Kemitraan Sehat' : b.relationshipScore >= 50 ? 'Kemitraan Stabil' : 'Kemitraan Berisiko'}</b><br>
-                Berdasarkan frekuensi, volume, dan kelancaran kas.
+      <div style="display:flex; flex-direction:column; gap:20px; overflow-y:auto; max-height:75vh; padding-right:4px;">
+        <!-- Top Section: 2 Columns (Metrics & Config) -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr)); gap:20px;">
+          <!-- Left Column: Metrics -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div>
+              <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase;">Kesehatan Kemitraan</span>
+              <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+                <div style="font-size:28px; font-weight:900; color:${scoreColor}; font-family:var(--font-mono);">${b.relationshipScore}<span style="font-size:14px; color:var(--text3); font-weight:500;">/100</span></div>
+                <div style="font-size:11px; color:var(--text2); line-height:1.3;">
+                  <b>${b.relationshipScore >= 80 ? 'Kemitraan Sehat' : b.relationshipScore >= 50 ? 'Kemitraan Stabil' : 'Kemitraan Berisiko'}</b><br>
+                  Berdasarkan frekuensi, volume, dan kelancaran kas.
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
-              <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Total Pembelian</span>
-              <span style="font-size:14px; font-weight:800; color:var(--text1);">${b.totalVolume.toFixed(1)} kg</span>
-              <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">Rata-rata: ${(b.totalVolume / b.transactions.length).toFixed(1)} kg/trx</span>
-            </div>
-            <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
-              <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Kontribusi Omzet</span>
-              <span style="font-size:14px; font-weight:800; color:var(--text1);">${fRp(b.totalRevenue)}</span>
-              <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">${b.transactions.length} transaksi</span>
-            </div>
-          </div>
-
-          <div>
-            <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; display:block; margin-bottom:8px;">Tren Pembelian (6 Bulan Terakhir)</span>
-            <div style="display:flex; align-items:center; gap:16px; background:var(--surface2); padding:12px; border-radius:8px; border:1px solid var(--border-subtle);">
-              ${drawSparkline(sparkPoints)}
-              <div style="font-size:10px; color:var(--text2);">
-                Volume 30 hari terakhir:<br>
-                <b style="font-size:12px; color:var(--text1);">${b.volumeLast30.toFixed(1)} kg</b>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
+                <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Total Pembelian</span>
+                <span style="font-size:14px; font-weight:800; color:var(--text1);">${b.totalVolume.toFixed(1)} kg</span>
+                <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">Rata-rata: ${(b.totalVolume / b.transactions.length).toFixed(1)} kg/trx</span>
+              </div>
+              <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
+                <span style="font-size:9px; color:var(--text3); text-transform:uppercase; display:block;">Kontribusi Omzet</span>
+                <span style="font-size:14px; font-weight:800; color:var(--text1);">${fRp(b.totalRevenue)}</span>
+                <span style="font-size:9px; color:var(--text3); display:block; margin-top:2px;">${b.transactions.length} transaksi</span>
               </div>
             </div>
+
+            <div>
+              <span style="font-size:11px; color:var(--text3); font-weight:600; text-transform:uppercase; display:block; margin-bottom:8px;">Tren Pembelian (6 Bulan Terakhir)</span>
+              <div style="display:flex; align-items:center; gap:16px; background:var(--surface2); padding:12px; border-radius:8px; border:1px solid var(--border-subtle);">
+                ${drawSparkline(sparkPoints)}
+                <div style="font-size:10px; color:var(--text2);">
+                  Volume 30 hari terakhir:<br>
+                  <b style="font-size:12px; color:var(--text1);">${b.volumeLast30.toFixed(1)} kg</b>
+                </div>
+              </div>
+            </div>
+
+            ${b.unpaidTotal > 0 ? `
+              <div style="background:var(--bg-red); border:1px solid rgba(224,85,85,.15); padding:12px; border-radius:8px;">
+                <span style="font-size:11px; font-weight:700; color:var(--red); display:block; margin-bottom:4px;">⚠️ Saldo Piutang Berjalan</span>
+                <div style="font-size:16px; font-weight:800; color:var(--red); font-family:var(--font-mono);">${fRp(b.unpaidTotal)}</div>
+                <span style="font-size:10px; color:var(--red); opacity:0.8;">Terdapat ${b.unpaidTrxCount} transaksi tempo belum dilunasi.</span>
+              </div>
+            ` : `
+              <div style="background:var(--bg-green); border:1px solid rgba(34,197,94,.15); padding:10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
+                <span style="color:var(--green); font-size:11px; font-weight:700;">✓ Tidak ada piutang tertunggak (Lunas Bersih)</span>
+              </div>
+            `}
           </div>
 
-          ${b.unpaidTotal > 0 ? `
-            <div style="background:var(--bg-red); border:1px solid rgba(224,85,85,.15); padding:12px; border-radius:8px;">
-              <span style="font-size:11px; font-weight:700; color:var(--red); display:block; margin-bottom:4px;">⚠️ Saldo Piutang Berjalan</span>
-              <div style="font-size:16px; font-weight:800; color:var(--red); font-family:var(--font-mono);">${fRp(b.unpaidTotal)}</div>
-              <span style="font-size:10px; color:var(--red); opacity:0.8;">Terdapat ${b.unpaidTrxCount} transaksi tempo belum dilunasi.</span>
+          <!-- Right Column: Override Controls -->
+          <div style="display:flex; flex-direction:column; gap:12px; border-left:1px solid var(--border-subtle); padding-left:20px;">
+            <div class="field">
+              <label>Kategori Buyer (Override)</label>
+              <select id="mo-category" class="inp">
+                <option value="" ${b.isAutoCategory ? 'selected' : ''}>Auto (Recommended: ${b.autoCategoryValue})</option>
+                <option value="Anchor Buyer" ${S.buyerConfigs[b.name]?.manualCategory === 'Anchor Buyer' ? 'selected' : ''}>Anchor Buyer</option>
+                <option value="Core Retail" ${S.buyerConfigs[b.name]?.manualCategory === 'Core Retail' ? 'selected' : ''}>Core Retail</option>
+                <option value="Opportunistic" ${S.buyerConfigs[b.name]?.manualCategory === 'Opportunistic' ? 'selected' : ''}>Opportunistic</option>
+                <option value="End Consumer" ${S.buyerConfigs[b.name]?.manualCategory === 'End Consumer' ? 'selected' : ''}>End Consumer</option>
+              </select>
             </div>
-          ` : `
-            <div style="background:var(--bg-green); border:1px solid rgba(34,197,94,.15); padding:10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
-              <span style="color:var(--green); font-size:11px; font-weight:700;">✓ Tidak ada piutang tertunggak (Lunas Bersih)</span>
+
+            <div class="field">
+              <label>Tier Pricing (Override)</label>
+              <select id="mo-pricing" class="inp">
+                <option value="" ${b.isAutoPricingTier ? 'selected' : ''}>Auto (Recommended: ${b.autoPricingTierValue})</option>
+                <option value="Distributor Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Distributor Tier' ? 'selected' : ''}>Distributor Tier (Grosir - Spread)</option>
+                <option value="Retail Partner Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Retail Partner Tier' ? 'selected' : ''}>Retail Partner Tier (Grosir)</option>
+                <option value="Direct Consumer Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Direct Consumer Tier' ? 'selected' : ''}>Direct Consumer Tier (Eceran)</option>
+                <option value="Event Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Event Tier' ? 'selected' : ''}>Event Tier (Harga Khusus)</option>
+              </select>
             </div>
-          `}
+
+            <div class="field">
+              <label>Catatan Strategis</label>
+              <textarea id="mo-notes" class="inp" style="height:100px; resize:none;" placeholder="Tulis catatan penting kemitraan, komitmen harga, histori negosiasi...">${b.notes}</textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+              <button class="btn btn-sm" style="background:var(--surface3); color:var(--text1); border:1px solid var(--border-subtle);" onclick="document.getElementById('buyer-profile-modal').remove()">Batal</button>
+              <button class="btn btn-g btn-sm" onclick="saveBuyerConfig('${b.name.replace(/'/g, "\\'")}')">Simpan Konfigurasi</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Right Column: Override Controls -->
-        <div style="display:flex; flex-direction:column; gap:12px; border-left:1px solid var(--border-subtle); padding-left:20px;">
-          <div class="field">
-            <label>Kategori Buyer (Override)</label>
-            <select id="mo-category" class="inp">
-              <option value="" ${b.isAutoCategory ? 'selected' : ''}>Auto (Recommended: ${b.autoCategoryValue})</option>
-              <option value="Anchor Buyer" ${S.buyerConfigs[b.name]?.manualCategory === 'Anchor Buyer' ? 'selected' : ''}>Anchor Buyer</option>
-              <option value="Core Retail" ${S.buyerConfigs[b.name]?.manualCategory === 'Core Retail' ? 'selected' : ''}>Core Retail</option>
-              <option value="Opportunistic" ${S.buyerConfigs[b.name]?.manualCategory === 'Opportunistic' ? 'selected' : ''}>Opportunistic</option>
-              <option value="End Consumer" ${S.buyerConfigs[b.name]?.manualCategory === 'End Consumer' ? 'selected' : ''}>End Consumer</option>
-            </select>
-          </div>
+        <!-- Bottom Section: Monthly Purchase Analysis -->
+        <div style="border-top:1px solid var(--border-subtle); padding-top:20px; margin-top:10px;">
+          <h4 style="margin:0 0 12px; font-family:'Playfair Display',serif; color:var(--text1); font-size:14px; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="calendar-days" style="width:16px; height:16px; color:var(--gold);"></i> Analisis Kinerja Pembelian Bulanan
+          </h4>
+          
+          ${alertHtml}
 
-          <div class="field">
-            <label>Tier Pricing (Override)</label>
-            <select id="mo-pricing" class="inp">
-              <option value="" ${b.isAutoPricingTier ? 'selected' : ''}>Auto (Recommended: ${b.autoPricingTierValue})</option>
-              <option value="Distributor Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Distributor Tier' ? 'selected' : ''}>Distributor Tier (Grosir - Spread)</option>
-              <option value="Retail Partner Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Retail Partner Tier' ? 'selected' : ''}>Retail Partner Tier (Grosir)</option>
-              <option value="Direct Consumer Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Direct Consumer Tier' ? 'selected' : ''}>Direct Consumer Tier (Eceran)</option>
-              <option value="Event Tier" ${S.buyerConfigs[b.name]?.manualPricingTier === 'Event Tier' ? 'selected' : ''}>Event Tier (Harga Khusus)</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Catatan Strategis</label>
-            <textarea id="mo-notes" class="inp" style="height:100px; resize:none;" placeholder="Tulis catatan penting kemitraan, komitmen harga, histori negosiasi...">${b.notes}</textarea>
-          </div>
-
-          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
-            <button class="btn btn-sm" style="background:var(--surface3); color:var(--text1); border:1px solid var(--border-subtle);" onclick="document.getElementById('buyer-profile-modal').remove()">Batal</button>
-            <button class="btn btn-g btn-sm" onclick="saveBuyerConfig('${b.name.replace(/'/g, "\\'")}')">Simpan Konfigurasi</button>
+          <!-- Monthly History Table Wrapper -->
+          <div class="tbl-w" style="overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:8px; border:1px solid var(--border-subtle);">
+            <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left;">
+              <thead>
+                <tr style="background:var(--surface2); border-bottom:1px solid var(--border-subtle);">
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2);">Bulan</th>
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2); text-align:right;">Volume Jual (kg)</th>
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2); text-align:right;">Total Omzet</th>
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2); text-align:center;">Trx</th>
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2); text-align:right;">Tren MoM</th>
+                  <th style="padding:10px 12px; font-weight:700; color:var(--text2); text-align:right;">Rata-rata Harga</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${displayMetrics.map(m => {
+                  let trendText = '—';
+                  let trendColor = 'var(--text3)';
+                  let trendIcon = '';
+                  
+                  if (m.hasPrev) {
+                    if (m.prevVolume === 0 && m.volume > 0) {
+                      trendText = 'Baru';
+                      trendColor = 'var(--blue)';
+                      trendIcon = '<i data-lucide="user-plus" style="width:12px; height:12px; vertical-align:middle; margin-right:2px;"></i>';
+                    } else if (m.momChange > 0) {
+                      trendText = `+${m.momChange.toFixed(1)}%`;
+                      trendColor = 'var(--green)';
+                      trendIcon = '<i data-lucide="trending-up" style="width:12px; height:12px; vertical-align:middle; margin-right:2px;"></i>';
+                    } else if (m.momChange < 0) {
+                      trendText = `${m.momChange.toFixed(1)}%`;
+                      trendColor = 'var(--red)';
+                      trendIcon = '<i data-lucide="trending-down" style="width:12px; height:12px; vertical-align:middle; margin-right:2px;"></i>';
+                    } else {
+                      trendText = '0.0%';
+                      trendColor = 'var(--text3)';
+                    }
+                  }
+                  
+                  return `
+                    <tr style="border-bottom:1px solid var(--border-subtle); background:${m.volume === 0 ? 'rgba(239, 68, 68, 0.02)' : 'none'};">
+                      <td style="padding:10px 12px; font-weight:600; color:var(--text1); white-space:nowrap;">${getIndoMonthName(m.monthStr)}</td>
+                      <td style="padding:10px 12px; text-align:right; font-weight:700; color:${m.volume > 0 ? 'var(--text1)' : 'var(--text3)'};">${m.volume.toFixed(1)} kg</td>
+                      <td style="padding:10px 12px; text-align:right; color:${m.volume > 0 ? 'var(--text1)' : 'var(--text3)'}; font-family:var(--font-mono);">${m.volume > 0 ? fRp(m.revenue) : '—'}</td>
+                      <td style="padding:10px 12px; text-align:center; color:${m.volume > 0 ? 'var(--text1)' : 'var(--text3)'};">${m.volume > 0 ? m.trxCount : '—'}</td>
+                      <td style="padding:10px 12px; text-align:right; font-weight:700; color:${trendColor}; white-space:nowrap;">
+                        ${trendIcon}${trendText}
+                      </td>
+                      <td style="padding:10px 12px; text-align:right; color:${m.volume > 0 ? 'var(--text2)' : 'var(--text3)'}; font-family:var(--font-mono);">${m.volume > 0 ? fRp(m.avgPrice) + '/kg' : '—'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -5274,6 +5497,7 @@ window.showBuyerProfileModal = function(buyerName) {
   `;
 
   document.body.appendChild(modal);
+  if (window.lucide) lucide.createIcons();
 };
 
 window.saveBuyerConfig = function(name) {
