@@ -2083,6 +2083,222 @@ const calcFCR = () => {
 
 const mortalitas = () => S.logEntries.reduce((s, e) => s + num(e.ayamMati), 0);
 
+function getEggStock() {
+  const layakJualButir = S.logEntries.reduce((s, e) => s + num(e.butir), 0);
+  const layakJualKg = S.logEntries.reduce((s, e) => s + num(e.kg), 0);
+  const rusakButir = S.logEntries.reduce((s, e) => s + num(e.telurRusak), 0);
+  const rusakKg = S.logEntries.reduce((s, e) => s + (num(e.butir) > 0 ? num(e.telurRusak) * (num(e.kg) / num(e.butir)) : 0), 0);
+  const prodButir = layakJualButir + rusakButir;
+  const prodKg = layakJualKg + rusakKg;
+  const salesTelur = S.salesEntries.filter(e => !e.deleted && (e.item === 'Telur' || !e.item));
+  const terjualKg = salesTelur.reduce((s, e) => s + num(e.kg), 0);
+  const avgGoodWeight = layakJualButir > 0 ? (layakJualKg / layakJualButir) : 0;
+  const terjualButir = avgGoodWeight > 0 ? Math.round(terjualKg / avgGoodWeight) : 0;
+  return {
+    layakJualButir, layakJualKg, rusakButir, rusakKg,
+    prodButir, prodKg, terjualKg, terjualButir,
+    stokKg: Math.max(0, layakJualKg - terjualKg),
+    stokButir: Math.max(0, layakJualButir - terjualButir)
+  };
+}
+
+// ═══════════════════════════════════════════════
+// PROYEKSI PENDAPATAN & PRODUKSI
+// ═══════════════════════════════════════════════
+function getRevenueProjection() {
+  const E = S.salesEntries.filter(e => !e.deleted);
+  if (E.length < 2) return null;
+  
+  // Group sales by date
+  const dailyRev = {};
+  E.forEach(e => { dailyRev[e.date] = (dailyRev[e.date] || 0) + num(e.total); });
+  const days = Object.keys(dailyRev).sort();
+  if (days.length < 2) return null;
+  
+  // Calculate averages for different periods
+  const allRevs = days.map(d => dailyRev[d]);
+  const avg7 = days.length >= 7 
+    ? days.slice(-7).reduce((s, d) => s + dailyRev[d], 0) / Math.min(7, days.slice(-7).length)
+    : null;
+  const avg14 = days.length >= 14
+    ? days.slice(-14).reduce((s, d) => s + dailyRev[d], 0) / Math.min(14, days.slice(-14).length)
+    : null;
+  const avg30 = days.length >= 30
+    ? days.slice(-30).reduce((s, d) => s + dailyRev[d], 0) / Math.min(30, days.slice(-30).length)
+    : null;
+  const avgAll = allRevs.reduce((s, v) => s + v, 0) / allRevs.length;
+  
+  // Use best available average (prefer recent data)
+  const bestAvg = avg7 || avg14 || avg30 || avgAll;
+  
+  // Calculate trend (linear regression on last 14 days)
+  const recent = days.slice(-14);
+  let trendPerDay = 0;
+  if (recent.length >= 3) {
+    const n = recent.length;
+    const xs = recent.map((_, i) => i);
+    const ys = recent.map(d => dailyRev[d]);
+    const sumX = xs.reduce((s, x) => s + x, 0);
+    const sumY = ys.reduce((s, y) => s + y, 0);
+    const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
+    const sumXX = xs.reduce((s, x) => s + x * x, 0);
+    const denom = n * sumXX - sumX * sumX;
+    if (denom !== 0) trendPerDay = (n * sumXY - sumX * sumY) / denom;
+  }
+  
+  // Projection for next 30 days
+  const projDays = 30;
+  let projTotal = 0;
+  const projDaily = [];
+  for (let i = 1; i <= projDays; i++) {
+    const projected = Math.max(0, bestAvg + trendPerDay * i);
+    projTotal += projected;
+    if (i % 7 === 0 || i === projDays) {
+      projDaily.push({ day: i, value: projected });
+    }
+  }
+  
+  // Revenue by kg analysis
+  const dailyKg = {};
+  E.forEach(e => { dailyKg[e.date] = (dailyKg[e.date] || 0) + num(e.kg); });
+  const avgKg7 = days.length >= 7
+    ? days.slice(-7).reduce((s, d) => s + (dailyKg[d] || 0), 0) / Math.min(7, days.slice(-7).length)
+    : Object.values(dailyKg).reduce((s, v) => s + v, 0) / days.length;
+  
+  return {
+    avg7, avg14, avg30, avgAll, bestAvg,
+    trendPerDay, trendPct: bestAvg > 0 ? (trendPerDay / bestAvg * 100) : 0,
+    proj30: projTotal,
+    projMonthly: projTotal,
+    projDaily,
+    avgKgPerDay: avgKg7,
+    totalDays: days.length,
+    lastDate: days[days.length - 1]
+  };
+}
+
+function getProductionProjection() {
+  const E = S.logEntries;
+  if (E.length < 3) return null;
+  
+  const age = getChickenAge();
+  const currentWeek = age.weeks;
+  const initialBirds = getInitialBirds();
+  const currentBirds = getActiveBirdsAtDate(today());
+  const totalMati = mortalitas();
+  
+  // Calculate daily mortality rate from history
+  const daysRecorded = E.length;
+  const dailyMortRate = daysRecorded > 0 ? totalMati / daysRecorded : 0;
+  
+  // Recent HDP trend (last 7 days)
+  const recent7 = E.slice(-7);
+  const avgHDP7 = recent7.reduce((s, e) => s + getHDP(e.butir, e.telurRusak, e.date), 0) / recent7.length;
+  
+  // Recent egg weight (last 7 days) 
+  const recent7WithKg = recent7.filter(e => num(e.butir) > 0 && num(e.kg) > 0);
+  const avgEggWeight = recent7WithKg.length > 0
+    ? recent7WithKg.reduce((s, e) => s + (num(e.kg) / num(e.butir)), 0) / recent7WithKg.length
+    : 0.062; // default ~62g
+  
+  // Egg weight growth model: weight increases ~0.5-1g per week as hens mature
+  // Peak at ~30 weeks, stabilizes, slight increase until 50 weeks
+  const weightGrowthPerDay = currentWeek < 30 ? 0.0001 : // ~0.7g/week pre-peak
+                              currentWeek < 50 ? 0.00005 : // ~0.35g/week post-peak
+                              0; // plateau
+  
+  // HDP biological curve model based on age
+  // Peak production at weeks 26-30, then gradual decline ~0.5-1% per week
+  const getHDPAdjustment = (weeksAhead) => {
+    const futureWeek = currentWeek + weeksAhead;
+    if (futureWeek <= 28) return 0.3; // Still ramping up
+    if (futureWeek <= 35) return 0; // Peak plateau
+    if (futureWeek <= 50) return -0.15; // Gentle decline per week
+    return -0.3; // Steeper decline per week
+  };
+  
+  // Project 30 days forward
+  const projDays = 30;
+  const projection = [];
+  let runningBirds = currentBirds;
+  let runningHDP = avgHDP7;
+  let runningEggWeight = avgEggWeight;
+  let totalProjButir = 0, totalProjKg = 0, totalProjMati = 0;
+  
+  const todayDate = new Date();
+  
+  for (let i = 1; i <= projDays; i++) {
+    // Apply daily mortality
+    const dailyDeath = Math.min(runningBirds, Math.round(dailyMortRate));
+    runningBirds = Math.max(0, runningBirds - dailyDeath);
+    totalProjMati += dailyDeath;
+    
+    // Apply weekly HDP adjustment (every 7 days)
+    if (i % 7 === 0) {
+      const weekNum = i / 7;
+      runningHDP = Math.max(0, Math.min(100, runningHDP + getHDPAdjustment(weekNum)));
+    }
+    
+    // Egg weight grows daily
+    runningEggWeight = Math.min(0.075, runningEggWeight + weightGrowthPerDay);
+    
+    // Calculate daily production
+    const dailyButir = Math.round(runningBirds * runningHDP / 100);
+    const dailyKg = dailyButir * runningEggWeight;
+    
+    totalProjButir += dailyButir;
+    totalProjKg += dailyKg;
+    
+    const futureDate = new Date(todayDate);
+    futureDate.setDate(futureDate.getDate() + i);
+    const dateStr = futureDate.toISOString().slice(0, 10);
+    
+    projection.push({
+      day: i,
+      date: dateStr,
+      birds: runningBirds,
+      hdp: runningHDP,
+      eggWeight: runningEggWeight,
+      butir: dailyButir,
+      kg: dailyKg,
+      deaths: dailyDeath
+    });
+  }
+  
+  // Weekly summaries
+  const weeklySummary = [];
+  for (let w = 0; w < 4; w++) {
+    const weekData = projection.slice(w * 7, (w + 1) * 7);
+    const weekButir = weekData.reduce((s, d) => s + d.butir, 0);
+    const weekKg = weekData.reduce((s, d) => s + d.kg, 0);
+    const weekMati = weekData.reduce((s, d) => s + d.deaths, 0);
+    const avgHdp = weekData.reduce((s, d) => s + d.hdp, 0) / weekData.length;
+    const avgWeight = weekData.reduce((s, d) => s + d.eggWeight, 0) / weekData.length;
+    weeklySummary.push({
+      week: w + 1,
+      startDate: weekData[0]?.date,
+      endDate: weekData[weekData.length - 1]?.date,
+      butir: weekButir,
+      kg: weekKg,
+      deaths: weekMati,
+      avgHdp,
+      avgWeight,
+      endBirds: weekData[weekData.length - 1]?.birds || 0
+    });
+  }
+  
+  return {
+    currentWeek, currentBirds, avgHDP7,
+    avgEggWeight: avgEggWeight * 1000, // in grams
+    dailyMortRate,
+    totalProjButir, totalProjKg, totalProjMati,
+    endBirds: runningBirds,
+    endHDP: runningHDP,
+    endEggWeight: runningEggWeight * 1000,
+    weeklySummary, projection
+  };
+}
+
 const priceForDate = (d, type) => {
   const e = [...S.priceHistory].reverse().find(h => h.date <= d);
   if (!e) return null;
@@ -2261,7 +2477,7 @@ function isPeriodLocked(date) {
   return S.lockedPeriods && S.lockedPeriods.includes(ym);
 }
 
-function writeAuditLog(action, details) {
+function writeAuditLog(action, details, snapshot) {
   const log = {
     id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     timestamp: new Date().toISOString(),
@@ -2269,12 +2485,12 @@ function writeAuditLog(action, details) {
     action: action,
     details: details
   };
+  if (snapshot) log.snapshot = snapshot;
   if (!S.auditLogs) S.auditLogs = [];
   S.auditLogs.unshift(log);
   S.auditLogs.sort((a,b) => b.timestamp.localeCompare(a.timestamp));
   try {
     localStorage.setItem('sf-audit', JSON.stringify(S.auditLogs));
-      localStorage.setItem('sf-attendance', JSON.stringify(S.attendanceLogs));
   } catch(e) {}
   if (db) {
     db.collection('auditLogs').doc(log.id).set(log).catch(e => console.error("Cloud audit write failed:", e));
@@ -2290,10 +2506,12 @@ function saveConfig() {
       coaMappings: S.coaMappings || {},
       buyerMappings: S.buyerMappings || {},
       itemMappings: S.itemMappings || {},
-      flock: S.flock,
+      buyerConfigs: S.buyerConfigs || {},
+      flock: S.flock || {},
       hppConfig: S.hppConfig || {},
-      spreadG: S.spreadG,
-      spreadE: S.spreadE
+      spreadG: S.spreadG || 500,
+      spreadE: S.spreadE || 1500,
+      j_grosirMinWeight: S.j_grosirMinWeight || 15
     }).catch(e => console.error("Failed to save config to Cloud:", e));
   }
 }
@@ -2608,8 +2826,12 @@ function saveHppConfig(e) {
   
   // Push to cloud if cloud sync exists
   if (typeof uploadStateToCloud === 'function') {
-    uploadStateToCloud("Update Konfigurasi HPP", () => {
+    uploadStateToCloud().then(() => {
       alert("Konfigurasi HPP berhasil disimpan dan disinkronisasi ke cloud!");
+      renderHub();
+    }).catch(err => {
+      console.error("Failed to upload config:", err);
+      alert("Gagal mengunggah konfigurasi ke cloud, tetapi disimpan secara lokal.");
       renderHub();
     });
   } else {
@@ -3816,6 +4038,17 @@ async function uploadStateToCloud() {
     for (const item of S.purchaseEntries) {
       await addOp(db.collection('purchaseEntries').doc(item.id), item);
     }
+    for (const item of (S.auditLogs || [])) {
+      await addOp(db.collection('auditLogs').doc(item.id), item);
+    }
+    for (const item of (S.attendanceLogs || [])) {
+      await addOp(db.collection('attendanceLogs').doc(item.id), item);
+    }
+    if (S.opChecklist) {
+      for (const [dateKey, data] of Object.entries(S.opChecklist)) {
+        await addOp(db.collection('opChecklist').doc(dateKey), data);
+      }
+    }
     
     await addOp(db.collection('config').doc('mainConfig'), {
       customItems: S.customItems,
@@ -3824,7 +4057,12 @@ async function uploadStateToCloud() {
       coaMappings: S.coaMappings || {},
       buyerMappings: S.buyerMappings || {},
       itemMappings: S.itemMappings || {},
-      buyerConfigs: S.buyerConfigs || {}
+      buyerConfigs: S.buyerConfigs || {},
+      flock: S.flock || {},
+      hppConfig: S.hppConfig || {},
+      spreadG: S.spreadG || 500,
+      spreadE: S.spreadE || 1500,
+      j_grosirMinWeight: S.j_grosirMinWeight || 15
     });
 
     if (opCount > 0) {
@@ -3945,10 +4183,16 @@ async function loadFromCloud(){
       if (cData.spreadE !== undefined) {
         S.spreadE = num(cData.spreadE, 1500);
       }
+      if (cData.j_grosirMinWeight !== undefined) {
+        S.j_grosirMinWeight = num(cData.j_grosirMinWeight, 15);
+      }
     }
 
     normalizeSalesData();
     LS.save();
+    
+    // Auto-backup daily snapshot to Firestore
+    autoBackupToCloud();
     
     S.lastSaved = new Date();
     localStorage.setItem('sf-last-saved', S.lastSaved.toISOString());
@@ -3972,7 +4216,13 @@ function mergeBy(local, cloud, keyFn){
   if (Array.isArray(cloud)) {
     cloud.forEach(e => {
       const key = keyFn(e);
-      if (key) map.set(key, e);
+      if (key) {
+        const existing = map.get(key);
+        // Timestamp-based conflict resolution: newer updatedAt wins
+        if (!existing || !existing.updatedAt || !e.updatedAt || e.updatedAt >= existing.updatedAt) {
+          map.set(key, e);
+        }
+      }
     });
   }
   return [...map.values()];
@@ -4226,9 +4476,14 @@ function addLog(e){
   }
   const idx=S.logEntries.findIndex(x=>x.date===e.date);
   const isEdit = idx >= 0;
+  const oldValue = isEdit ? {...S.logEntries[idx]} : null;
+  e.updatedAt = new Date().toISOString();
+  e.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
   if(idx>=0)S.logEntries[idx]=e; else S.logEntries=[...S.logEntries,e].sort((a,b)=>a.date.localeCompare(b.date));
   
-  writeAuditLog(isEdit ? 'edit_produksi' : 'tambah_produksi', `Tanggal: ${e.date}, Butir: ${e.butir}, Berat: ${e.kg}kg${e.telurRusak ? `, Rusak: ${e.telurRusak} btr` : ''}`);
+  writeAuditLog(isEdit ? 'edit_produksi' : 'tambah_produksi', 
+    `Tanggal: ${e.date}, Butir: ${e.butir}, Berat: ${e.kg}kg, Pakan: ${e.kgPakan||0}kg, Mati: ${e.ayamMati||0}${e.telurRusak ? `, Rusak: ${e.telurRusak} btr` : ''}`,
+    { oldValue, newValue: {...e} });
   LS.save();
   if (db) {
     db.collection('logEntries').doc(e.date).set(e).catch(err => console.error("Cloud log write failed:", err));
@@ -4239,7 +4494,9 @@ function delLog(d){
     alert("⚠️ Transaksi gagal: Periode bulan ini sudah dikunci (Tutup Buku).");
     return;
   }
-  writeAuditLog('delete_produksi', `Menghapus log produksi tanggal ${d}`);
+  const deletedEntry = S.logEntries.find(e => e.date === d);
+  writeAuditLog('delete_produksi', `Menghapus log produksi tanggal ${d}`,
+    { deletedValue: deletedEntry ? {...deletedEntry} : null });
   S.logEntries=S.logEntries.filter(e=>e.date!==d);
   LS.save();
   if (db) {
@@ -4253,12 +4510,14 @@ function addPrice(acuan,date){
     alert("⚠️ Transaksi gagal: Periode bulan ini sudah dikunci (Tutup Buku).");
     return;
   }
-  const e={date:d,acuan:+acuan};
+  const e={date:d,acuan:+acuan,updatedAt:new Date().toISOString()};
   const i=S.priceHistory.findIndex(h=>h.date===d);
   const isEdit = i >= 0;
+  const oldValue = isEdit ? {...S.priceHistory[i]} : null;
   if(i>=0)S.priceHistory[i]=e; else S.priceHistory=[...S.priceHistory,e].sort((a,b)=>a.date.localeCompare(b.date));
   
-  writeAuditLog(isEdit ? 'edit_harga' : 'tambah_harga', `Tanggal: ${d}, Acuan: ${fRp(acuan)}`);
+  writeAuditLog(isEdit ? 'edit_harga' : 'tambah_harga', `Tanggal: ${d}, Acuan: ${fRp(acuan)}`,
+    { oldValue, newValue: {...e} });
   LS.save();
   if (db) {
     db.collection('priceHistory').doc(d).set(e).catch(err => console.error("Cloud price write failed:", err));
@@ -4269,7 +4528,9 @@ function delPrice(d){
     alert("⚠️ Transaksi gagal: Periode bulan ini sudah dikunci (Tutup Buku).");
     return;
   }
-  writeAuditLog('delete_harga', `Menghapus harga acuan tanggal ${d}`);
+  const deletedEntry = S.priceHistory.find(h => h.date === d);
+  writeAuditLog('delete_harga', `Menghapus harga acuan tanggal ${d}`,
+    { deletedValue: deletedEntry ? {...deletedEntry} : null });
   S.priceHistory=S.priceHistory.filter(h=>h.date!==d);
   LS.save();
   if (db) {
@@ -4283,12 +4544,14 @@ function addSale(o){
     return;
   }
   const isEdit = !!o.id;
+  let oldValue = null;
   if (isEdit) {
     const oldSale = S.salesEntries.find(e => e.id === o.id);
     if (oldSale && isPeriodLocked(oldSale.date)) {
       alert("⚠️ Transaksi gagal: Periode lama sudah dikunci (Tutup Buku).");
       return;
     }
+    oldValue = oldSale ? {...oldSale} : null;
   }
   const data = {
     ...o,
@@ -4300,10 +4563,12 @@ function addSale(o){
   
   if (isEdit) {
     S.salesEntries=S.salesEntries.map(e=>e.id===data.id?data:e);
-    writeAuditLog('edit_penjualan', `ID: ${data.id}, Buyer: ${data.buyer}, Total: ${fRp(data.total)}`);
+    writeAuditLog('edit_penjualan', `ID: ${data.id}, Buyer: ${data.buyer}, Total: ${fRp(data.total)}`,
+      { oldValue, newValue: {...data} });
   } else {
     S.salesEntries=[...S.salesEntries,data].sort((a,b)=>a.date.localeCompare(b.date));
-    writeAuditLog('tambah_penjualan', `Buyer: ${data.buyer}, Total: ${fRp(data.total)}`);
+    writeAuditLog('tambah_penjualan', `Buyer: ${data.buyer}, Total: ${fRp(data.total)}`,
+      { newValue: {...data} });
   }
   
   LS.save();
@@ -4318,10 +4583,12 @@ function delSale(id){
     alert("⚠️ Transaksi gagal: Periode sudah dikunci (Tutup Buku).");
     return;
   }
+  const beforeDelete = {...sale};
   sale.deleted = true;
   sale.updatedAt = new Date().toISOString();
   sale.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
-  writeAuditLog('delete_penjualan', `Buyer: ${sale.buyer || 'Tanpa Nama'}, Total: ${fRp(sale.total)}`);
+  writeAuditLog('delete_penjualan', `Buyer: ${sale.buyer || 'Tanpa Nama'}, Total: ${fRp(sale.total)}`,
+    { deletedValue: beforeDelete });
   LS.save();
   if (db) {
     db.collection('salesEntries').doc(id).set(sale).catch(err => console.error("Cloud sale delete failed:", err));
@@ -4343,7 +4610,8 @@ function togglePayStatus(id){
       sale.payCashAccount = null;
       sale.updatedAt = new Date().toISOString();
       sale.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
-      writeAuditLog('toggle_bayar', `Buyer: ${sale.buyer}, Status: belum`);
+      writeAuditLog('toggle_bayar', `Buyer: ${sale.buyer}, Status: belum`,
+        { oldValue: {payStatus: 'lunas', payDate: sale.payDate, payCashAccount: sale.payCashAccount} });
       LS.save();
       if (db) {
         db.collection('salesEntries').doc(id).set(sale).catch(err => console.error("Cloud pay status update failed:", err));
@@ -4436,7 +4704,9 @@ function submitPelunasan(id) {
   sale.updatedAt = new Date().toISOString();
   sale.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
   
-  writeAuditLog('pelunasan_piutang', `Buyer: ${sale.buyer}, Total: ${fRp(sale.total)}, Kas: ${payCashAccount}${discount > 0 ? `, Diskon: ${fRp(discount)}` : ''}`);
+  const beforePelunasan = {...sale};
+  writeAuditLog('pelunasan_piutang', `Buyer: ${sale.buyer}, Total: ${fRp(sale.total)}, Kas: ${payCashAccount}${discount > 0 ? `, Diskon: ${fRp(discount)}` : ''}`,
+    { oldValue: beforePelunasan, newValue: {...sale} });
   LS.save();
   if (db) {
     db.collection('salesEntries').doc(id).set(sale).catch(err => console.error("Cloud pay status update failed:", err));
@@ -5613,12 +5883,14 @@ function addPurchase(o){
     return;
   }
   const isEdit = !!o.id;
+  let oldValue = null;
   if (isEdit) {
     const oldPurchase = S.purchaseEntries.find(e => e.id === o.id);
     if (oldPurchase && isPeriodLocked(oldPurchase.date)) {
       alert("⚠️ Transaksi gagal: Periode lama sudah dikunci (Tutup Buku).");
       return;
     }
+    oldValue = oldPurchase ? {...oldPurchase} : null;
   }
   const data = {
     ...o,
@@ -5629,10 +5901,12 @@ function addPurchase(o){
   };
   if (isEdit) {
     S.purchaseEntries=S.purchaseEntries.map(e=>e.id===data.id?data:e);
-    writeAuditLog('edit_pembelian', `ID: ${data.id}, Item: ${data.item}, Total: ${fRp(data.total)}`);
+    writeAuditLog('edit_pembelian', `ID: ${data.id}, Item: ${data.item}, Total: ${fRp(data.total)}`,
+      { oldValue, newValue: {...data} });
   } else {
     S.purchaseEntries=[...S.purchaseEntries,data].sort((a,b)=>a.date.localeCompare(b.date));
-    writeAuditLog('tambah_pembelian', `Item: ${data.item}, Total: ${fRp(data.total)}`);
+    writeAuditLog('tambah_pembelian', `Item: ${data.item}, Total: ${fRp(data.total)}`,
+      { newValue: {...data} });
   }
   LS.save();
   if (db) {
@@ -5646,10 +5920,12 @@ function delPurchase(id){
     alert("⚠️ Transaksi gagal: Periode sudah dikunci (Tutup Buku).");
     return;
   }
+  const beforeDelete = {...purchase};
   purchase.deleted = true;
   purchase.updatedAt = new Date().toISOString();
   purchase.updatedBy = S.currentUser ? S.currentUser.name : 'Unknown';
-  writeAuditLog('delete_pembelian', `Item: ${purchase.item}, Total: ${fRp(purchase.total)}`);
+  writeAuditLog('delete_pembelian', `Item: ${purchase.item}, Total: ${fRp(purchase.total)}`,
+    { deletedValue: beforeDelete });
   LS.save();
   if (db) {
     db.collection('purchaseEntries').doc(id).set(purchase).catch(err => console.error("Cloud purchase delete failed:", err));
@@ -5857,22 +6133,9 @@ function renderLog(){
   const prog=(lHDP!==null&&lHDP!==undefined)?Math.min((lHDP/55)*100,100):0;
   const m=(lHDP!==null&&lHDP!==undefined)?hdpM(lHDP):{l:'—',c:'var(--text3)',bg:'var(--surface3)'};
 
-  // Egg Stock Management calculations
-  const layakJualButir = E.reduce((s, e) => s + num(e.butir), 0);
-  const layakJualKg = E.reduce((s, e) => s + num(e.kg), 0);
-  const rusakButir = E.reduce((s, e) => s + num(e.telurRusak), 0);
-  const rusakKg = E.reduce((s, e) => s + (num(e.butir) > 0 ? num(e.telurRusak) * (num(e.kg) / num(e.butir)) : 0), 0);
-  const prodButir = layakJualButir + rusakButir;
-  const prodKg = layakJualKg + rusakKg;
-
-  const salesTelur = S.salesEntries.filter(e => !e.deleted && (e.item === 'Telur' || !e.item));
-  const terjualKg = salesTelur.reduce((s, e) => s + num(e.kg), 0);
-  const avgGoodWeight = layakJualButir > 0 ? (layakJualKg / layakJualButir) : 0;
-  const terjualButir = avgGoodWeight > 0 ? Math.round(terjualKg / avgGoodWeight) : 0;
-
-  const stokKg = Math.max(0, layakJualKg - terjualKg);
-  const stokButir = Math.max(0, layakJualButir - terjualButir);
-
+  // Egg Stock Management calculations (centralized)
+  const eggStock = getEggStock();
+  const { layakJualButir, layakJualKg, rusakButir, rusakKg, prodButir, prodKg, terjualKg, terjualButir, stokKg, stokButir } = eggStock;
   const canDelete = S.currentUser && (S.currentUser.role === 'direktur');
 
   document.getElementById('content').innerHTML=`
@@ -6026,6 +6289,116 @@ function renderLog(){
       </div>
     </div>
     `:''}
+
+    ${(() => {
+      const prodProj = getProductionProjection();
+      if (!prodProj) return '';
+      return `
+    <div class="card cp fi" style="margin-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="S.prodProjOpen=!S.prodProjOpen;renderLog();">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="cb" style="background:linear-gradient(135deg, #4caf7d, #2d9b6a);"></div>
+          <span class="cl">${fI('🔬')} Proyeksi Produksi 30 Hari ke Depan</span>
+        </div>
+        <span style="font-size:16px; color:var(--text3);">${S.prodProjOpen ? '▾' : '▸'}</span>
+      </div>
+      
+      <div style="display:${S.prodProjOpen !== false ? 'block' : 'none'}; margin-top:14px;">
+        <!-- Current Baseline -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin-bottom:14px;">
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle); text-align:center;">
+            <div style="font-size:8px; color:var(--text3); text-transform:uppercase; font-weight:700;">Ayam Hidup</div>
+            <div style="font-size:16px; font-weight:800; color:var(--text1); margin:2px 0;">${prodProj.currentBirds.toLocaleString('id-ID')}</div>
+            <div style="font-size:9px; color:var(--text2);">Minggu ke-${prodProj.currentWeek}</div>
+          </div>
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle); text-align:center;">
+            <div style="font-size:8px; color:var(--text3); text-transform:uppercase; font-weight:700;">HDP Saat Ini</div>
+            <div style="font-size:16px; font-weight:800; color:var(--green); margin:2px 0;">${prodProj.avgHDP7.toFixed(1)}%</div>
+            <div style="font-size:9px; color:var(--text2);">Rerata 7 hari</div>
+          </div>
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle); text-align:center;">
+            <div style="font-size:8px; color:var(--text3); text-transform:uppercase; font-weight:700;">Berat Telur</div>
+            <div style="font-size:16px; font-weight:800; color:var(--gold); margin:2px 0;">${prodProj.avgEggWeight.toFixed(1)}g</div>
+            <div style="font-size:9px; color:var(--text2);">→ ${prodProj.endEggWeight.toFixed(1)}g</div>
+          </div>
+          <div style="background:var(--surface2); padding:10px; border-radius:8px; border:1px solid var(--border-subtle); text-align:center;">
+            <div style="font-size:8px; color:var(--text3); text-transform:uppercase; font-weight:700;">Mortalitas/Hari</div>
+            <div style="font-size:16px; font-weight:800; color:var(--red); margin:2px 0;">${prodProj.dailyMortRate.toFixed(1)}</div>
+            <div style="font-size:9px; color:var(--text2);">ekor/hari</div>
+          </div>
+        </div>
+
+        <!-- 30-Day Total Projection -->
+        <div style="background:linear-gradient(135deg, rgba(76,175,125,0.06), rgba(212,168,50,0.04)); padding:14px; border-radius:10px; border:1px solid rgba(76,175,125,0.15); margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-size:10px; color:var(--text3); text-transform:uppercase; font-weight:700;">🥚 Proyeksi Total 30 Hari</div>
+              <div style="font-size:20px; font-weight:800; color:var(--green); margin:4px 0;">${prodProj.totalProjButir.toLocaleString('id-ID')} butir</div>
+              <div style="font-size:12px; color:var(--text2); font-weight:600;">${prodProj.totalProjKg.toFixed(1)} kg</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:var(--text3); font-weight:600;">Est. Mortalitas</div>
+              <div style="font-size:14px; font-weight:700; color:var(--red);">-${prodProj.totalProjMati} ekor</div>
+              <div style="font-size:10px; color:var(--text2);">Sisa: ${prodProj.endBirds.toLocaleString('id-ID')} ekor</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Breakdown Table -->
+        <div class="tbl-w">
+          <table>
+            <thead>
+              <tr>
+                <th>Minggu</th>
+                <th style="text-align:right">Butir</th>
+                <th style="text-align:right">Kg</th>
+                <th style="text-align:right">Avg Bobot</th>
+                <th style="text-align:right">HDP</th>
+                <th style="text-align:right">Mati</th>
+                <th style="text-align:right">Sisa Ayam</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${prodProj.weeklySummary.map((w, i) => `
+              <tr style="${i === 3 ? 'border-top:1.5px solid var(--border); background:var(--surface2)' : ''}">
+                <td>
+                  <div style="font-weight:600;">Mg ${w.week}</div>
+                  <div style="font-size:9px; color:var(--text3);">${fmtD(w.startDate)} - ${fmtD(w.endDate)}</div>
+                </td>
+                <td style="text-align:right; font-weight:600;">${w.butir.toLocaleString('id-ID')}</td>
+                <td style="text-align:right; font-weight:600;">${w.kg.toFixed(1)}</td>
+                <td style="text-align:right; color:var(--gold); font-size:11px;">${(w.avgWeight * 1000).toFixed(1)}g</td>
+                <td style="text-align:right;">
+                  <span style="background:${w.avgHdp >= 55 ? 'var(--bg-green)' : 'var(--bg-red)'}; color:${w.avgHdp >= 55 ? 'var(--green)' : 'var(--red)'}; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600;">
+                    ${w.avgHdp.toFixed(1)}%
+                  </span>
+                </td>
+                <td style="text-align:right; color:var(--red); font-size:11px;">${w.deaths > 0 ? '-' + w.deaths : '0'}</td>
+                <td style="text-align:right; font-weight:600;">${w.endBirds.toLocaleString('id-ID')}</td>
+              </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Model Assumptions -->
+        <div style="margin-top:12px; background:var(--surface3); padding:10px; border-radius:8px;">
+          <div style="font-size:9px; color:var(--text3); font-weight:700; text-transform:uppercase; margin-bottom:6px;">Asumsi Model Proyeksi</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:9.5px; color:var(--text2);">
+            <div>• Berat telur naik ${prodProj.currentWeek < 30 ? '~0.7g' : '~0.35g'}/minggu</div>
+            <div>• HDP ${prodProj.currentWeek <= 28 ? 'masih naik (pre-peak)' : prodProj.currentWeek <= 35 ? 'stabil (plateau peak)' : 'turun gradual ~0.15%/mg'}</div>
+            <div>• Mortalitas: ${prodProj.dailyMortRate.toFixed(1)} ekor/hari (historis)</div>
+            <div>• Umur ayam: Minggu ke-${prodProj.currentWeek}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px; font-size:9px; color:var(--text3); display:flex; align-items:center; gap:4px;">
+          ${fI('ℹ️')} <span>Proyeksi biologis berdasarkan kurva pertumbuhan layer. Hasil aktual dapat bervariasi tergantung kondisi lingkungan, pakan, dan kesehatan flock.</span>
+        </div>
+      </div>
+    </div>`;
+    })()}
+
     ${E.length>=2?miniCharts(
       'Produksi Harian (Butir)',
       svgBar(E.slice(-20).map(e=>({v:e.butir,l:fmtD(e.date)})),{color:'#d4a832'}),
@@ -7100,21 +7473,9 @@ function renderSvarna() {
   const mati = mortalitas();
   const hidup = getInitialBirds() - mati;
 
-  // Egg Stock calculations
-  const layakJualButir = E.reduce((s, e) => s + num(e.butir), 0);
-  const layakJualKg = E.reduce((s, e) => s + num(e.kg), 0);
-  const rusakButir = E.reduce((s, e) => s + num(e.telurRusak), 0);
-  const rusakKg = E.reduce((s, e) => s + (num(e.butir) > 0 ? num(e.telurRusak) * (num(e.kg) / num(e.butir)) : 0), 0);
-  const prodButir = layakJualButir + rusakButir;
-  const prodKg = layakJualKg + rusakKg;
-
-  const salesTelur = S.salesEntries.filter(e => !e.deleted && (e.item === 'Telur' || !e.item));
-  const terjualKg = salesTelur.reduce((s, e) => s + num(e.kg), 0);
-  const avgGoodWeight = layakJualButir > 0 ? (layakJualKg / layakJualButir) : 0;
-  const terjualButir = avgGoodWeight > 0 ? Math.round(terjualKg / avgGoodWeight) : 0;
-
-  const stokKg = Math.max(0, layakJualKg - terjualKg);
-  const stokButir = Math.max(0, layakJualButir - terjualButir);
+  // Egg Stock calculations (centralized)
+  const eggStock = getEggStock();
+  const { layakJualButir, layakJualKg, rusakButir, rusakKg, prodButir, prodKg, terjualKg, terjualButir, stokKg, stokButir } = eggStock;
 
   // Monitor checklist for last 5 days
   const checklistDays = [];
@@ -7895,15 +8256,8 @@ function renderJual(){
   const kg=S.j_kg?+S.j_kg:0;
   const disc=S.j_disc?+S.j_disc:0;
 
-  // Egg Stock calculations
-  const prodKg = S.logEntries.reduce((s, e) => s + num(e.kg), 0);
-  const prodButir = S.logEntries.reduce((s, e) => s + num(e.butir), 0);
-  const soldKg = E.filter(e => e.item === 'Telur' || !e.item).reduce((s, e) => s + num(e.kg), 0);
-  const avgWeight = prodButir > 0 ? (prodKg / prodButir) : 0;
-  const soldButir = avgWeight > 0 ? Math.round(soldKg / avgWeight) : 0;
-  const stokKg = Math.max(0, prodKg - soldKg);
-  const stokButir = Math.max(0, prodButir - soldButir);
-
+  // Egg Stock calculations (centralized)
+  const { stokKg, stokButir, prodKg, prodButir } = getEggStock();
   // Form calculated total
   let subtotal = kg * unitPrice;
   let formTotal = subtotal;
@@ -7960,6 +8314,86 @@ function renderJual(){
     html += `<div class="card fi" style="padding:24px;text-align:center;color:var(--text3);margin-bottom:16px;border-radius:12px;border:1px dashed var(--border-subtle)">
       <i data-lucide="line-chart" style="width:24px;height:24px;margin:0 auto 8px;color:var(--text3)"></i>
       <div style="font-size:12px;font-weight:600">Grafik analisis penjualan akan muncul setelah minimal ada 2 hari data transaksi.</div>
+    </div>`;
+  }
+
+  // Revenue Projection Card
+  const revProj = getRevenueProjection();
+  if (revProj) {
+    const trendIcon = revProj.trendPerDay > 0 ? '↑' : revProj.trendPerDay < 0 ? '↓' : '→';
+    const trendColor = revProj.trendPerDay > 0 ? 'var(--green)' : revProj.trendPerDay < 0 ? 'var(--red)' : 'var(--gold)';
+    const trendBg = revProj.trendPerDay > 0 ? 'var(--bg-green)' : revProj.trendPerDay < 0 ? 'var(--bg-red)' : 'rgba(212,168,50,0.1)';
+    
+    html += `
+    <div class="card cp fi" style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="S.revProjOpen=!S.revProjOpen;renderJual();">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="cb" style="background:linear-gradient(135deg, #d4a832, #e8c547);"></div>
+          <span class="cl">${fI('📈')} Rata-Rata & Proyeksi Pendapatan</span>
+        </div>
+        <span style="font-size:16px; color:var(--text3);">${S.revProjOpen ? '▾' : '▸'}</span>
+      </div>
+      
+      <div style="display:${S.revProjOpen !== false ? 'block' : 'none'}; margin-top:14px;">
+        <!-- Average Revenue KPIs -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px;">
+          <div style="background:var(--surface2); padding:12px; border-radius:10px; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Rata-Rata / Hari</div>
+            <div style="font-size:18px; font-weight:800; color:var(--gold); margin:4px 0;">${fRp(Math.round(revProj.bestAvg))}</div>
+            <div style="font-size:10px; color:var(--text2);">~${revProj.avgKgPerDay.toFixed(1)} kg/hari</div>
+          </div>
+          ${revProj.avg7 ? `
+          <div style="background:var(--surface2); padding:12px; border-radius:10px; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">7 Hari Terakhir</div>
+            <div style="font-size:16px; font-weight:700; color:var(--text1); margin:4px 0;">${fRp(Math.round(revProj.avg7))}</div>
+            <div style="font-size:10px; color:var(--text2);">/hari</div>
+          </div>` : ''}
+          ${revProj.avg14 ? `
+          <div style="background:var(--surface2); padding:12px; border-radius:10px; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">14 Hari Terakhir</div>
+            <div style="font-size:16px; font-weight:700; color:var(--text1); margin:4px 0;">${fRp(Math.round(revProj.avg14))}</div>
+            <div style="font-size:10px; color:var(--text2);">/hari</div>
+          </div>` : ''}
+          <div style="background:var(--surface2); padding:12px; border-radius:10px; border:1px solid var(--border-subtle);">
+            <div style="font-size:9px; color:var(--text3); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Tren Revenue</div>
+            <div style="font-size:18px; font-weight:800; margin:4px 0;">
+              <span style="color:${trendColor}">${trendIcon} ${Math.abs(revProj.trendPct).toFixed(1)}%</span>
+            </div>
+            <span style="background:${trendBg}; color:${trendColor}; padding:2px 8px; border-radius:6px; font-size:9px; font-weight:700;">
+              ${revProj.trendPerDay > 500 ? 'Naik Kuat' : revProj.trendPerDay > 0 ? 'Naik' : revProj.trendPerDay < -500 ? 'Turun Tajam' : revProj.trendPerDay < 0 ? 'Menurun' : 'Stabil'}
+            </span>
+          </div>
+        </div>
+        
+        <!-- 30-Day Projection -->
+        <div style="background:linear-gradient(135deg, rgba(212,168,50,0.06), rgba(76,175,125,0.04)); padding:14px; border-radius:10px; border:1px solid rgba(212,168,50,0.15);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-size:10px; color:var(--text3); text-transform:uppercase; font-weight:700;">📊 Proyeksi 30 Hari ke Depan</div>
+              <div style="font-size:22px; font-weight:800; color:var(--gold); margin:4px 0;">${fRp(Math.round(revProj.proj30))}</div>
+              <div style="font-size:10px; color:var(--text2);">Estimasi total pendapatan 30 hari mendatang</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:var(--text3); font-weight:600;">Rata-rata Proyeksi/Hari</div>
+              <div style="font-size:15px; font-weight:700; color:var(--text1);">${fRp(Math.round(revProj.proj30 / 30))}</div>
+            </div>
+          </div>
+          
+          <!-- Weekly breakdown bar -->
+          <div style="margin-top:12px; display:grid; grid-template-columns:repeat(${revProj.projDaily.length}, 1fr); gap:4px;">
+            ${revProj.projDaily.map(d => `
+              <div style="text-align:center;">
+                <div style="background:var(--gold); opacity:0.7; height:${Math.max(4, Math.min(32, d.value / revProj.bestAvg * 20))}px; border-radius:3px; margin-bottom:4px;"></div>
+                <div style="font-size:8px; color:var(--text3);">H${d.day}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div style="margin-top:10px; font-size:9.5px; color:var(--text3); display:flex; align-items:center; gap:4px;">
+          ${fI('ℹ️')} <span>Proyeksi berdasarkan data ${revProj.totalDays} hari penjualan. Tren dihitung dari regresi linier 14 hari terakhir.</span>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -9168,6 +9602,7 @@ async function forceSyncCleanFromCloud() {
     S.purchaseEntries = [];
     S.auditLogs = [];
     S.attendanceLogs = [];
+    S.opChecklist = {};
     
     // Clear localStorage values
     localStorage.removeItem('sf-log');
@@ -9188,6 +9623,32 @@ async function forceSyncCleanFromCloud() {
   } finally {
     S.saving = false;
     updateCloudUI();
+  }
+}
+
+async function autoBackupToCloud() {
+  if (!db) return;
+  const backupDate = today();
+  const backupKey = `backup_${backupDate}`;
+  try {
+    const existing = await db.collection('backups').doc(backupKey).get();
+    if (existing.exists) return; // Sudah backup hari ini
+    const snapshot = {
+      date: backupDate,
+      timestamp: new Date().toISOString(),
+      user: S.currentUser ? S.currentUser.name : 'System',
+      logEntries: S.logEntries,
+      priceHistory: S.priceHistory,
+      salesEntries: S.salesEntries.filter(e => !e.deleted),
+      purchaseEntries: S.purchaseEntries.filter(e => !e.deleted),
+      flock: S.flock,
+      hppConfig: S.hppConfig,
+      totalRecords: S.logEntries.length + S.salesEntries.filter(e => !e.deleted).length + S.purchaseEntries.filter(e => !e.deleted).length
+    };
+    await db.collection('backups').doc(backupKey).set(snapshot);
+    console.log(`✓ Auto-backup harian berhasil: ${backupKey} (${snapshot.totalRecords} records)`);
+  } catch(e) {
+    console.error('Auto-backup gagal:', e);
   }
 }
 
