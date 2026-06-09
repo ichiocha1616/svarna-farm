@@ -1713,6 +1713,7 @@ const S = {
   spreadG: 500,
   spreadE: 1500,
   hubSubTab: 'ringkasan',
+  svarnaSubTab: 'ringkasan',
   tab:'log', section:'',
   dark:false,
   currentUser:null,
@@ -1896,6 +1897,67 @@ const getHDP = (b, r = 0, date = null) => {
   const butir = num(b) + num(r);
   const total = date ? getActiveBirdsAtDate(date) : getInitialBirds();
   return total > 0 ? (butir / total) * 100 : 0;
+};
+
+const getEggPriceAtDate = (date) => {
+  const e = [...S.priceHistory].reverse().find(h => h.date <= date);
+  return e ? num(e.acuan) : FLOOR_PRICE;
+};
+
+const getEggFeedRatioStats = (e) => {
+  if (!e) return null;
+  const date = e.date;
+  const eggPrice = num(e.hargaTelur) > 0 ? num(e.hargaTelur) : getEggPriceAtDate(date);
+  const feedPricePerKg = num(e.hargaPakanSak) > 0 ? (num(e.hargaPakanSak) / 50) : getFeedPriceAtDate(date);
+  const feedPriceSak = num(e.hargaPakanSak) > 0 ? num(e.hargaPakanSak) : (feedPricePerKg * 50);
+  const ratio = feedPricePerKg > 0 ? (eggPrice / feedPricePerKg) : 0;
+  const dailyFeedConsumption = num(e.kgPakan);
+  const dailyEggProduction = num(e.kg);
+  const feedCostPerKgEgg = dailyEggProduction > 0 ? (dailyFeedConsumption * feedPricePerKg) / dailyEggProduction : 0;
+  const marginPakan = eggPrice - feedCostPerKgEgg;
+  const activeBirds = getActiveBirdsAtDate(date);
+  const feedHenDay = activeBirds > 0 ? (dailyFeedConsumption * 1000) / activeBirds : 0;
+  const eggMassHen = activeBirds > 0 ? (dailyEggProduction * 1000) / activeBirds : 0;
+  
+  let status = 'Darurat';
+  let color = 'var(--red)';
+  let glow = 'var(--red-glow)';
+  if (ratio >= 4.0) {
+    status = 'Sangat Baik';
+    color = 'var(--green)';
+    glow = 'var(--green-glow)';
+  } else if (ratio >= 3.5) {
+    status = 'Baik';
+    color = '#84cc16'; // Hijau Muda
+    glow = 'rgba(132, 204, 22, 0.1)';
+  } else if (ratio >= 3.0) {
+    status = 'Waspada';
+    color = 'var(--amber)';
+    glow = 'var(--amber-glow)';
+  } else if (ratio >= 2.8) {
+    status = 'Risiko Tinggi';
+    color = '#f97316'; // Orange
+    glow = 'rgba(249, 115, 22, 0.1)';
+  }
+  
+  return {
+    date,
+    eggPrice,
+    feedPriceSak,
+    feedPricePerKg,
+    ratio,
+    feedCostPerKgEgg,
+    marginPakan,
+    feedHenDay,
+    eggMassHen,
+    status,
+    color,
+    glow,
+    hdp: getHDP(e.butir, e.telurRusak, date),
+    butir: num(e.butir) + num(e.telurRusak),
+    kg: dailyEggProduction,
+    kgPakan: dailyFeedConsumption
+  };
 };
 
 const getFeedPriceAtDate = (date) => {
@@ -2781,6 +2843,12 @@ let selectedExportMonth = '';
 function switchHubTab(tabName) {
   S.hubSubTab = tabName;
   renderHub();
+}
+
+function switchSvarnaTab(tabName) {
+  S.svarnaSubTab = tabName;
+  localStorage.setItem('sf-svarna-subtab', tabName);
+  renderSvarna();
 }
 
 function saveHppConfig(e) {
@@ -4314,6 +4382,7 @@ const LS={
       localStorage.setItem('sf-hpp-config', JSON.stringify(S.hppConfig || {}));
       localStorage.setItem('sf-spreadG',    S.spreadG.toString());
       localStorage.setItem('sf-spreadE',    S.spreadE.toString());
+      localStorage.setItem('sf-svarna-subtab', S.svarnaSubTab || 'ringkasan');
       localStorage.setItem('sf-active-tab', S.tab || 'log');
       localStorage.setItem('sf-active-section', S.section || '');
     }catch(e){console.warn('LS save:',e)}
@@ -4339,6 +4408,7 @@ const LS={
     try{const hpp=JSON.parse(localStorage.getItem('sf-hpp-config'));if(hpp)S.hppConfig={...S.hppConfig,...hpp};}catch(_){}
     try{const sg=localStorage.getItem('sf-spreadG');if(sg!==null&&sg!==undefined)S.spreadG=num(sg, 500);}catch(_){}
     try{const se=localStorage.getItem('sf-spreadE');if(se!==null&&se!==undefined)S.spreadE=num(se, 1500);}catch(_){}
+    try{S.svarnaSubTab=localStorage.getItem('sf-svarna-subtab')||'ringkasan'}catch(_){}
     S.dark = localStorage.getItem('sf-dark-v2') === '1';
     
     try {
@@ -5709,6 +5779,8 @@ function editLog(date){
     const lp=document.getElementById('lp'); if(lp) lp.value=e.kgPakan||'';
     const lm=document.getElementById('lm'); if(lm) lm.value=e.ayamMati||'';
     const lr=document.getElementById('lr'); if(lr) lr.value=e.telurRusak||'';
+    const lht=document.getElementById('lht'); if(lht) lht.value=e.hargaTelur||'';
+    const lhp=document.getElementById('lhp'); if(lhp) lhp.value=e.hargaPakanSak||'';
     document.getElementById('log-form-card')?.scrollIntoView({behavior:'smooth'});
   },50);
 }
@@ -6213,7 +6285,7 @@ function importJSON(){
 // SVG CHARTS
 // ═══════════════════════════════════════════════
 function svgLine(pts, opts={}){
-  const {w=320,h=120,color='#d4a832',fill=true,refLines=[],unit='',minY=0,maxY=null,labels=[]}=opts;
+  const {w=320,h=120,color='#d4a832',fill=true,refLines=[],unit='',minY=0,maxY=null,labels=[],decimals=0}=opts;
   if(pts.length<2) return `<div class="chart-no-data">Butuh minimal 2 hari data</div>`;
   const pl={t:8,r:8,b:28,l:52};
   const iw=w-pl.l-pl.r, ih=h-pl.t-pl.b;
@@ -6238,7 +6310,7 @@ function svgLine(pts, opts={}){
   yTicks.forEach(v=>{
     const y=yS(v);
     svg+=`<line x1="${pl.l}" y1="${y.toFixed(1)}" x2="${pl.l+iw}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
-    svg+=`<text x="${pl.l-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--text3)" font-family="DM Sans">${Math.round(v)}${unit}</text>`;
+    svg+=`<text x="${pl.l-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--text3)" font-family="DM Sans">${decimals > 0 ? v.toFixed(decimals) : Math.round(v)}${unit}</text>`;
   });
   // Reference lines
   refLines.forEach(rl=>{
@@ -6259,6 +6331,55 @@ function svgLine(pts, opts={}){
   const step=Math.max(1,Math.ceil(pts.length/6));
   pts.forEach((p,i)=>{
     if(i%step!==0&&i!==pts.length-1)return;
+    svg+=`<text x="${xS(i).toFixed(1)}" y="${h-4}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="DM Sans">${p.l||''}</text>`;
+  });
+  svg+=`</svg>`;
+  return svg;
+}
+
+function svgDoubleLine(pts1, pts2, opts={}) {
+  const {w=320,h=120,color1='#10B981',color2='#C4960C',refLines=[],unit='',minY=0,maxY=null,decimals=0}=opts;
+  if(pts1.length<2 || pts2.length<2) return `<div class="chart-no-data">Butuh minimal 2 hari data</div>`;
+  const pl={t:8,r:8,b:28,l:52};
+  const iw=w-pl.l-pl.r, ih=h-pl.t-pl.b;
+  const vals1=pts1.map(p=>num(p.v));
+  const vals2=pts2.map(p=>num(p.v));
+  const allVals = [...vals1, ...vals2];
+  let yMax=maxY||Math.max(...allVals,minY)*1.15;
+  let yMin=minY;
+  if (yMax === yMin) {
+    yMax += 1;
+  }
+  const xS=i=>pl.l+(i/(pts1.length-1))*iw;
+  const yS=v=>{
+    const rawY = pl.t+ih-((num(v)-yMin)/(yMax-yMin))*ih;
+    if (isNaN(rawY)) return pl.t+ih;
+    return Math.max(-5, Math.min(h+5, rawY));
+  };
+  const pathD1=pts1.map((p,i)=>`${i===0?'M':'L'}${xS(i).toFixed(1)},${yS(p.v).toFixed(1)}`).join(' ');
+  const pathD2=pts2.map((p,i)=>`${i===0?'M':'L'}${xS(i).toFixed(1)},${yS(p.v).toFixed(1)}`).join(' ');
+  
+  const yTicks=[0,.25,.5,.75,1].map(f=>yMin+(yMax-yMin)*f);
+  let svg=`<svg viewBox="0 0 ${w} ${h}" class="chart-svg" style="height:${h}px">`;
+  yTicks.forEach(v=>{
+    const y=yS(v);
+    svg+=`<line x1="${pl.l}" y1="${y.toFixed(1)}" x2="${pl.l+iw}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+    svg+=`<text x="${pl.l-4}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--text3)" font-family="DM Sans">${decimals > 0 ? v.toFixed(decimals) : Math.round(v)}${unit}</text>`;
+  });
+  
+  svg+=`<path d="${pathD1}" fill="none" stroke="${color1}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  pts1.forEach((p,i)=>{
+    svg+=`<circle cx="${xS(i).toFixed(1)}" cy="${yS(p.v).toFixed(1)}" r="3.5" fill="${color1}" stroke="var(--surface)" stroke-width="1.5"/>`;
+  });
+  
+  svg+=`<path d="${pathD2}" fill="none" stroke="${color2}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  pts2.forEach((p,i)=>{
+    svg+=`<circle cx="${xS(i).toFixed(1)}" cy="${yS(p.v).toFixed(1)}" r="3.5" fill="${color2}" stroke="var(--surface)" stroke-width="1.5"/>`;
+  });
+  
+  const step=Math.max(1,Math.ceil(pts1.length/6));
+  pts1.forEach((p,i)=>{
+    if(i%step!==0&&i!==pts1.length-1)return;
     svg+=`<text x="${xS(i).toFixed(1)}" y="${h-4}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="DM Sans">${p.l||''}</text>`;
   });
   svg+=`</svg>`;
@@ -6645,6 +6766,10 @@ function renderLog(){
         <div class="field" style="margin:0"><label>Ayam mati <span style="color:var(--text3);font-weight:400">opsional</span></label><input type="number" id="lm" class="inp inp-sm" placeholder="0"></div>
         <div class="field" style="margin:0"><label>Telur Rusak (BS) <span style="color:var(--text3);font-weight:400">opsional</span></label><input type="number" id="lr" class="inp inp-sm" placeholder="0"></div>
       </div>
+      <div class="frow">
+        <div class="field" style="margin:0"><label>Harga Telur/kg <span style="color:var(--text3);font-weight:400">opsional</span></label><input type="number" id="lht" class="inp inp-sm" placeholder="Rp/kg"></div>
+        <div class="field" style="margin:0"><label>Harga Pakan/sak <span style="color:var(--text3);font-weight:400">opsional</span></label><input type="number" id="lhp" class="inp inp-sm" placeholder="Rp/sak 50kg"></div>
+      </div>
       <button class="btn btn-g" id="log-btn" onclick="submitLog()">${S.l_editId?'Simpan Perubahan':'Simpan Data'}</button>
     </div>
     ${E.length>0?`<div class="card fi" style="overflow:hidden;padding:0">
@@ -6748,7 +6873,12 @@ function submitLog(){
     }
   }
 
-  addLog({date:d,butir:b,kg:k,kgPakan:p,ayamMati:m,telurRusak:r});
+  const htVal = document.getElementById('lht')?.value;
+  const hpVal = document.getElementById('lhp')?.value;
+  const ht = htVal ? +htVal : 0;
+  const hp = hpVal ? +hpVal : 0;
+
+  addLog({date:d,butir:b,kg:k,kgPakan:p,ayamMati:m,telurRusak:r,hargaTelur:ht,hargaPakanSak:hp});
   S.l_editId=null;
   const btn=document.getElementById('log-btn');
   if(btn){btn.textContent='✓ Tersimpan';btn.className='btn btn-ok';}
@@ -7012,7 +7142,9 @@ function renderOperator() {
       telurRusak: num(existing.telurRusak),
       kg: num(existing.kg),
       kgPakan: num(existing.kgPakan),
-      ayamMati: num(existing.ayamMati)
+      ayamMati: num(existing.ayamMati),
+      hargaTelur: num(existing.hargaTelur) || '',
+      hargaPakanSak: num(existing.hargaPakanSak) || ''
     };
   }
 
@@ -7110,6 +7242,17 @@ function renderOperator() {
           <div class="op-field-container">
             <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="wheat" style="width:11px; height:11px; color:var(--amber);"></i> Konsumsi Pakan (kg)</label>
             <input type="number" min="0" step="0.1" id="val-kgPakan" class="inp op-inp" value="${S.opTemp.kgPakan}" oninput="opInput('kgPakan', this.value, true)" style="color: var(--amber); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="circle-dollar-sign" style="width:11px; height:11px; color:var(--gold);"></i> Harga Telur/kg <span style="opacity:0.6;font-weight:400">(opsional)</span></label>
+            <input type="number" min="0" step="1" id="val-hargaTelur" class="inp op-inp" value="${S.opTemp.hargaTelur || ''}" oninput="opInput('hargaTelur', this.value)" placeholder="Rp/kg" style="color: var(--gold); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+          </div>
+          <div class="op-field-container">
+            <label class="op-label" style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-secondary); margin-bottom:3px;"><i data-lucide="circle-dollar-sign" style="width:11px; height:11px; color:var(--amber);"></i> Harga Pakan/sak <span style="opacity:0.6;font-weight:400">(opsional)</span></label>
+            <input type="number" min="0" step="1" id="val-hargaPakanSak" class="inp op-inp" value="${S.opTemp.hargaPakanSak || ''}" oninput="opInput('hargaPakanSak', this.value)" placeholder="Rp/sak 50kg" style="color: var(--amber); background: var(--surface2); width: 100%; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 700;">
           </div>
         </div>
 
@@ -7657,7 +7800,9 @@ function submitOpLog() {
     telurRusak: S.opTemp.telurRusak || 0,
     kg: kg,
     kgPakan: S.opTemp.kgPakan || 0,
-    ayamMati: S.opTemp.ayamMati || 0
+    ayamMati: S.opTemp.ayamMati || 0,
+    hargaTelur: S.opTemp.hargaTelur ? +S.opTemp.hargaTelur : 0,
+    hargaPakanSak: S.opTemp.hargaPakanSak ? +S.opTemp.hargaPakanSak : 0
   };
   
   addLog(entry);
@@ -7683,38 +7828,9 @@ function submitOpLog() {
   }, 1000);
 }
 
-// ═══════════════════════════════════════════════
-// RENDER: SVARNA FARM MANAGER WORKSPACE
-// ═══════════════════════════════════════════════
-function renderSvarna() {
+function renderRingkasanContent(lastHDP, hdpMeta, fcr, pakanStock, hidup, mati, prodButir, prodKg, rusakButir, rusakKg, layakJualButir, layakJualKg, terjualButir, terjualKg, stokButir, stokKg, checklistDays) {
   const E = S.logEntries;
-  const lastLogVal = E[E.length - 1];
-  const lastHDP = lastLogVal ? getHDP(lastLogVal.butir, lastLogVal.telurRusak, lastLogVal.date) : 0;
-  const hdpMeta = hdpM(lastHDP);
-  
-  const fcr = calcFCR();
-  const pakanStock = getPakanStock();
-  const mati = mortalitas();
-  const hidup = getInitialBirds() - mati;
-
-  // Egg Stock calculations (centralized)
-  const eggStock = getEggStock();
-  const { layakJualButir, layakJualKg, rusakButir, rusakKg, prodButir, prodKg, terjualKg, terjualButir, stokKg, stokButir } = eggStock;
-
-  // Monitor checklist for last 5 days
-  const checklistDays = [];
-  for (let i = 0; i < 5; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    checklistDays.push(d.toISOString().slice(0, 10));
-  }
-
-  document.getElementById('content').innerHTML = `
-    <div class="fi" style="margin-bottom: 20px;">
-      <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0;">${fI('🥚')} Workspace Manajer: Unit Svarna Farm</h2>
-      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Pemantauan performa harian produksi telur, efisiensi pakan (FCR), dan tugas kandang.</div>
-    </div>
-
+  return `
     <div class="kpi-g fi" style="margin-bottom: 20px;">
       <div class="kpi">
         <div class="kl">HDP Terakhir</div>
@@ -7913,6 +8029,291 @@ function renderSvarna() {
       </div>
     </div>
     ` : ''}
+  `;
+}
+
+function renderRatioContent(stats, dropAlert, marginAlert, costAlert, aiText) {
+  let alertHtml = '';
+  if (dropAlert || marginAlert || costAlert) {
+    alertHtml = `
+      <div class="ratio-alert-card fi">
+        <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          ${fI('⚠️')} Peringatan & Anomali Sistem
+        </div>
+        ${dropAlert ? `
+          <div class="ratio-alert-item ratio-alert-warning">
+            ${fI('alert-triangle')} <b>Peringatan Dini:</b> Rasio telur-pakan menurun selama 5 hari berturut-turut! Segera evaluasi efisiensi pakan.
+          </div>
+        ` : ''}
+        ${marginAlert ? `
+          <div class="ratio-alert-item ratio-alert-danger">
+            ${fI('alert-triangle')} <b>Margin Pakan Kritis:</b> Selisih harga telur dan biaya pakan kurang dari Rp 2.000/kg!
+          </div>
+        ` : ''}
+        ${costAlert ? `
+          <div class="ratio-alert-item ratio-alert-danger">
+            ${fI('alert-triangle')} <b>Biaya Pakan Ekstrim:</b> Biaya pakan per kg telur melebihi 90% harga telur!
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  const aiHtml = `
+    <div class="ratio-ai-panel fi">
+      <div style="font-size: 14px; font-weight: 800; color: #a855f7; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size:16px;">✨</span> AI Analisis Ekonomi Svarna Farm
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: var(--text-primary); font-weight: 500;">
+        ${aiText}
+      </div>
+    </div>
+  `;
+
+  const latest = stats[stats.length - 1];
+  const ratioVal = latest ? latest.ratio.toFixed(2) : '—';
+  const ratioColor = latest ? latest.color : 'var(--text3)';
+  const ratioGlow = latest ? latest.glow : 'transparent';
+  const ratioStatus = latest ? latest.status : 'No Data';
+
+  const feedCostVal = latest ? `Rp ${Math.round(latest.feedCostPerKgEgg).toLocaleString('id-ID')}` : '—';
+  const feedCostPct = latest ? `${((latest.feedCostPerKgEgg / latest.eggPrice) * 100).toFixed(1)}%` : '—';
+
+  const marginVal = latest ? `Rp ${Math.round(latest.marginPakan).toLocaleString('id-ID')}/kg` : '—';
+  let marginStatus = '—';
+  let marginColor = 'var(--text3)';
+  let marginGlow = 'transparent';
+  if (latest) {
+    if (latest.marginPakan >= 2000) {
+      marginStatus = 'Sehat';
+      marginColor = 'var(--green)';
+      marginGlow = 'var(--green-glow)';
+    } else if (latest.marginPakan > 0) {
+      marginStatus = 'Kritis';
+      marginColor = 'var(--amber)';
+      marginGlow = 'var(--amber-glow)';
+    } else {
+      marginStatus = 'Rugi';
+      marginColor = 'var(--red)';
+      marginGlow = 'var(--red-glow)';
+    }
+  }
+
+  const kpisHtml = `
+    <div class="ratio-kpi-grid fi">
+      <div class="kpi">
+        <div class="kl">Rasio Telur-Pakan (Hari Ini)</div>
+        <div class="kv" style="font-size: 32px; color: ${ratioColor}">${ratioVal}</div>
+        <span class="bdg" style="background: ${ratioGlow}; color: ${ratioColor}">${ratioStatus}</span>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">Target Rasio ideal: ≥ 3.5 - 4.0</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kl">Feed Cost per Kg Telur</div>
+        <div class="kv" style="font-size: 32px; color: var(--text-primary)">${feedCostVal}</div>
+        <span class="bdg" style="background: var(--border); color: var(--text-secondary)">${feedCostPct} dari harga telur</span>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">Biaya pakan untuk menghasilkan 1kg telur</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kl">Margin Pakan Harian</div>
+        <div class="kv" style="font-size: 32px; color: ${marginColor}">${marginVal}</div>
+        <span class="bdg" style="background: ${marginGlow}; color: ${marginColor}">${marginStatus}</span>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);">Batas kritis margin: Rp 2.000/kg</div>
+      </div>
+    </div>
+  `;
+
+  const last30 = stats.slice(-30);
+  const chartEggFeedPrice = svgDoubleLine(
+    last30.map(s => ({ v: s.eggPrice, l: fmtD(s.date) })),
+    last30.map(s => ({ v: s.feedPricePerKg, l: fmtD(s.date) })),
+    { color1: 'var(--green)', color2: 'var(--amber)', decimals: 0 }
+  );
+
+  const chartRatio = svgLine(
+    last30.map(s => ({ v: s.ratio, l: fmtD(s.date) })),
+    { color: '#84cc16', decimals: 2, minY: 0 }
+  );
+
+  const chartMargin = svgLine(
+    last30.map(s => ({ v: s.marginPakan, l: fmtD(s.date) })),
+    { color: '#10b981', decimals: 0, minY: 0 }
+  );
+
+  const chartsHtml = `
+    <div class="ratio-chart-grid fi">
+      <div class="card cp">
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+          <span>${fI('trending-up')} Harga Telur vs Pakan (Rp/kg)</span>
+          <span style="font-size: 9px; font-weight: normal; color: var(--text-muted);"><span style="color:var(--green)">■ Telur</span> <span style="color:var(--amber)">■ Pakan</span></span>
+        </div>
+        ${chartEggFeedPrice}
+      </div>
+      <div class="card cp">
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+          ${fI('percent')} Tren Rasio Telur-Pakan
+        </div>
+        ${chartRatio}
+      </div>
+      <div class="card cp">
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+          ${fI('dollar-sign')} Tren Margin Pakan (Rp/kg)
+        </div>
+        ${chartMargin}
+      </div>
+    </div>
+  `;
+
+  const tableHtml = `
+    <div class="card fi" style="overflow:hidden; padding:0; margin-top:20px;">
+      <div style="padding:13px 16px; border-bottom:1px solid var(--border2)" class="ct"><div class="cb y"></div><span class="cl">Riwayat Analisis 30 Hari Terakhir</span></div>
+      <div class="tbl-w">
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th style="text-align:right">Harga Telur (kg)</th>
+              <th style="text-align:right">Harga Pakan (sak)</th>
+              <th style="text-align:center">Rasio</th>
+              <th style="text-align:right">Feed Cost / kg Telur</th>
+              <th style="text-align:right">Margin Pakan</th>
+              <th style="text-align:right">Pakan / Hen / Day</th>
+              <th style="text-align:right">Egg Mass / Hen</th>
+              <th style="text-align:center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${[...stats].reverse().slice(0, 30).map(s => `
+              <tr style="border-bottom: 1px solid var(--border-subtle);">
+                <td style="padding: 10px; font-weight: 600; color: var(--text-primary);">${fmtD(s.date)}</td>
+                <td style="padding: 10px; text-align: right; font-weight: 600; color: var(--gold);">Rp ${Math.round(s.eggPrice).toLocaleString('id-ID')}</td>
+                <td style="padding: 10px; text-align: right; color: var(--text-secondary);">Rp ${Math.round(s.feedPriceSak).toLocaleString('id-ID')}</td>
+                <td style="padding: 10px; text-align: center;">
+                  <span class="bdg" style="background: ${s.glow}; color: ${s.color}; font-weight: 800;">
+                    ${s.ratio.toFixed(2)}
+                  </span>
+                </td>
+                <td style="padding: 10px; text-align: right; color: var(--text-muted);">Rp ${Math.round(s.feedCostPerKgEgg).toLocaleString('id-ID')}</td>
+                <td style="padding: 10px; text-align: right; font-weight: 700; color: ${s.marginPakan >= 2000 ? 'var(--green)' : s.marginPakan > 0 ? 'var(--amber)' : 'var(--red)'};">
+                  Rp ${Math.round(s.marginPakan).toLocaleString('id-ID')}
+                </td>
+                <td style="padding: 10px; text-align: right; color: var(--text-secondary);">${s.feedHenDay.toFixed(1)} g</td>
+                <td style="padding: 10px; text-align: right; color: var(--text-secondary);">${s.eggMassHen.toFixed(1)} g</td>
+                <td style="padding: 10px; text-align: center;">
+                  <span class="bdg" style="background: ${s.glow}; color: ${s.color}; font-weight: 600;">${s.status}</span>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  return `
+    ${alertHtml}
+    ${aiHtml}
+    ${kpisHtml}
+    ${chartsHtml}
+    ${tableHtml}
+  `;
+}
+
+function switchSvarnaTab(tab) {
+  S.svarnaSubTab = tab;
+  LS.save();
+  renderSvarna();
+}
+
+function renderSvarna() {
+  const E = S.logEntries;
+  const lastLogVal = E[E.length - 1];
+  const lastHDP = lastLogVal ? getHDP(lastLogVal.butir, lastLogVal.telurRusak, lastLogVal.date) : 0;
+  const hdpMeta = hdpM(lastHDP);
+  
+  const fcr = calcFCR();
+  const pakanStock = getPakanStock();
+  const mati = mortalitas();
+  const hidup = getInitialBirds() - mati;
+
+  // Egg Stock calculations (centralized)
+  const eggStock = getEggStock();
+  const { layakJualButir, layakJualKg, rusakButir, rusakKg, prodButir, prodKg, terjualKg, terjualButir, stokKg, stokButir } = eggStock;
+
+  // Monitor checklist for last 5 days
+  const checklistDays = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    checklistDays.push(d.toISOString().slice(0, 10));
+  }
+
+  // Calculations for Egg-Feed Ratio
+  const allRatioStats = S.logEntries.map(e => getEggFeedRatioStats(e)).filter(Boolean);
+  const latestStat = allRatioStats[allRatioStats.length - 1];
+
+  let dropAlert = false;
+  if (allRatioStats.length >= 6) {
+    const last6 = allRatioStats.slice(-6);
+    let isDropping = true;
+    for (let i = 1; i < 6; i++) {
+      if (last6[i].ratio >= last6[i-1].ratio) {
+        isDropping = false;
+        break;
+      }
+    }
+    dropAlert = isDropping;
+  }
+  const marginAlert = latestStat && latestStat.marginPakan > 0 && latestStat.marginPakan < 2000;
+  const costAlert = latestStat && latestStat.eggPrice > 0 && (latestStat.feedCostPerKgEgg / latestStat.eggPrice) > 0.9;
+
+  let aiText = "Belum ada data produksi yang cukup untuk melakukan analisis kecerdasan buatan.";
+  if (latestStat) {
+    const ratioStr = latestStat.ratio.toFixed(2);
+    const marginStr = latestStat.marginPakan > 0 ? `Rp ${Math.round(latestStat.marginPakan).toLocaleString('id-ID')}/kg` : 'negatif';
+    let sentence1 = `Pada tanggal ${fmtD(latestStat.date)}, Rasio Telur-Pakan tercatat sebesar ${ratioStr} dengan status "${latestStat.status}" dan margin pakan sebesar ${marginStr}.`;
+    
+    let sentence2 = "";
+    if (latestStat.ratio >= 3.5) {
+      sentence2 = "Kondisi ekonomi usaha sangat sehat, didukung oleh harga jual telur yang optimal relatif terhadap biaya pakan.";
+    } else if (latestStat.ratio >= 3.0) {
+      sentence2 = "Kinerja berada di zona waspada. Perlu pemantauan ketat terhadap kestabilan harga telur di pasar lokal dan efisiensi konsumsi pakan harian.";
+    } else {
+      sentence2 = "Usaha mengalami tekanan margin yang serius akibat biaya pakan yang tinggi atau harga jual telur yang rendah.";
+    }
+    
+    let sentence3 = "";
+    if (dropAlert) {
+      sentence3 = "Peringatan: Terdeteksi penurunan rasio selama 5 hari berturut-turut, segera evaluasi formula pakan atau negosiasikan ulang harga distributor.";
+    } else if (marginAlert || costAlert) {
+      sentence3 = "Rekomendasi: Margin pakan berada dalam batas kritis. Disarankan untuk meninjau kembali porsi pakan harian ayam atau menaikkan harga jual telur ke tingkat grosir.";
+    } else {
+      sentence3 = "Rekomendasi: Pertahankan pola pemberian pakan saat ini dan pastikan stabilitas populasi ayam aktif untuk menjaga produktivitas.";
+    }
+    aiText = `${sentence1} ${sentence2} ${sentence3}`;
+  }
+
+  // Ensure S.svarnaSubTab defaults to 'ringkasan'
+  if (!S.svarnaSubTab) S.svarnaSubTab = 'ringkasan';
+
+  document.getElementById('content').innerHTML = `
+    <div class="fi" style="margin-bottom: 20px;">
+      <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0;">${fI('🥚')} Workspace Manajer: Unit Svarna Farm</h2>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Pemantauan performa harian produksi telur, efisiensi pakan (FCR), dan tugas kandang.</div>
+    </div>
+
+    <!-- Sub-Tabs Navigation -->
+    <div class="hub-subtabs fi" style="margin-bottom: 20px; display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <button onclick="switchSvarnaTab('ringkasan')" class="subtab-btn ${S.svarnaSubTab === 'ringkasan' ? 'active' : ''}" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid ${S.svarnaSubTab === 'ringkasan' ? 'var(--gold)' : 'var(--border)'}; background: ${S.svarnaSubTab === 'ringkasan' ? 'var(--gold-glow)' : 'transparent'}; color: ${S.svarnaSubTab === 'ringkasan' ? 'var(--gold)' : 'var(--text-secondary)'}; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+        ${fI('📊')} Ikhtisar Produksi
+      </button>
+      <button onclick="switchSvarnaTab('ratio')" class="subtab-btn ${S.svarnaSubTab === 'ratio' ? 'active' : ''}" style="display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid ${S.svarnaSubTab === 'ratio' ? 'var(--gold)' : 'var(--border)'}; background: ${S.svarnaSubTab === 'ratio' ? 'var(--gold-glow)' : 'transparent'}; color: ${S.svarnaSubTab === 'ratio' ? 'var(--gold)' : 'var(--text-secondary)'}; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+        ${fI('⚖️')} Analisis Rasio Telur-Pakan
+      </button>
+    </div>
+
+    ${S.svarnaSubTab === 'ratio' ? renderRatioContent(allRatioStats, dropAlert, marginAlert, costAlert, aiText) : renderRingkasanContent(lastHDP, hdpMeta, fcr, pakanStock, hidup, mati, prodButir, prodKg, rusakButir, rusakKg, layakJualButir, layakJualKg, terjualButir, terjualKg, stokButir, stokKg, checklistDays)}
   `;
 
   // Custom CSS for layout
