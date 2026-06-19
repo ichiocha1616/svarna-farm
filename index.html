@@ -1763,6 +1763,9 @@ const S = {
   bi_page: 1,
   bi_perPage: 10,
   bi_selectedBuyer: '',
+  log_filterMY: '',
+  harga_filterMY: '',
+  beli_filterMY: '',
   cashAccountsList: [
     '1.1.01.01 Kas Tunai',
     '1.1.01.02 Kas di Bank BSI',
@@ -1805,6 +1808,15 @@ const parseCurrency = (str) => {
 const fRp    = n => 'Rp\u00A0'+Math.round(num(n)).toLocaleString('id-ID');
 const today  = () => new Date().toISOString().slice(0,10);
 const fmtD   = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}/${m}`; };
+const getMonthNameIndo = (m) => {
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return months[parseInt(m, 10) - 1] || '';
+};
+const formatMonthYearIndo = (ym) => {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  return `${getMonthNameIndo(m)} ${y}`;
+};
 const todayFmt=()=>new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
 
 const getInitialBirds = () => num(S.flock?.initialBirds, 1000);
@@ -5461,6 +5473,59 @@ window.showBuyerProfileModal = function(buyerName) {
                 <span style="color:var(--green); font-size:11px; font-weight:700;">✓ Tidak ada piutang tertunggak (Lunas Bersih)</span>
               </div>
             `}
+
+            <!-- Analisis Perilaku & Rekomendasi Cerdas -->
+            ${(() => {
+              const avgQty = (b.totalVolume / b.transactions.length).toFixed(1);
+              const repeatDays = Math.round(b.avgInterval);
+              const isRepeat = b.transactions.length > 1;
+              
+              let behaviorDesc = '';
+              let recs = [];
+              
+              if (!isRepeat) {
+                behaviorDesc = `<b>${b.name}</b> baru mencatat <b>1 kali transaksi</b> sebesar <b>${b.totalVolume.toFixed(1)} kg</b>. Pola repeat order berkala belum terbentuk.`;
+                recs.push('Kirimkan WA follow-up dalam 7 hari ke depan untuk menanyakan kepuasan produk telur Svarna Farm dan tawarkan langganan rutin.');
+              } else {
+                behaviorDesc = `<b>${b.name}</b> adalah tipe pembeli yang cenderung melakukan repeat order setiap <b>${repeatDays} hari sekali</b> dengan volume rata-rata <b>${avgQty} kg</b> per transaksi.`;
+                
+                if (repeatDays <= 3) {
+                  recs.push(`Pelanggan bertransaksi sangat intensif (${repeatDays} hari sekali). Hubungi via WA jika dalam 3 hari belum ada repeat order.`);
+                  recs.push('Prioritaskan alokasi stok telur sebelum jadwal ordernya agar pasokannya tetap terjamin.');
+                } else if (repeatDays <= 7) {
+                  recs.push(`Pelanggan rutin memesan mingguan. Kirimkan pengingat H-1 (sekitar 5-6 hari sejak belanja terakhir) via WA.`);
+                } else {
+                  recs.push(`Siklus belanja cukup panjang (${repeatDays} hari). Lakukan survei singkat apakah pasokan telur dari kita sudah habis.`);
+                }
+              }
+              
+              if (b.tags.includes('Growing')) {
+                recs.push('Volume belanja meningkat! Berikan apresiasi berupa diskon loyalitas kecil (misal Rp 100-200/kg) atau prioritas pengiriman.');
+              }
+              if (b.unpaidTotal > 0) {
+                recs.push('<span style="color:var(--red); font-weight:700;">Peringatan Piutang:</span> Batasi piutang baru dan selesaikan tagihan berjalan sebelum transaksi berikutnya.');
+              } else if (b.tags.includes('Cashflow Friendly')) {
+                recs.push('Pelanggan teladan (selalu lunas). Jaga komunikasi hangat and pastikan ketersediaan stok untuknya.');
+              }
+
+              return `
+                <div style="background:var(--surface2); border:1px solid var(--border-subtle); padding:14px; border-radius:10px; display:flex; flex-direction:column; gap:10px; margin-top:4px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="brain" style="width:20px; height:20px; color:var(--gold);"></i>
+                    <span style="font-size:12px; font-weight:700; color:var(--text1); text-transform:uppercase;">Analisis Perilaku & Rekomendasi</span>
+                  </div>
+                  <p style="font-size:11px; color:var(--text2); margin:0; line-height:1.4;">
+                    ${behaviorDesc}
+                  </p>
+                  <div style="display:flex; flex-direction:column; gap:6px; border-top:1px dashed var(--border-subtle); padding-top:8px; margin-top:4px;">
+                    <span style="font-size:9.5px; color:var(--text3); font-weight:700; text-transform:uppercase;">Rekomendasi Tindak Lanjut:</span>
+                    <ul style="margin:0; padding-left:14px; font-size:10.5px; color:var(--text2); display:flex; flex-direction:column; gap:4px;">
+                      ${recs.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                  </div>
+                </div>
+              `;
+            })()}
           </div>
 
           <!-- Right Column: Override Controls -->
@@ -5495,6 +5560,48 @@ window.showBuyerProfileModal = function(buyerName) {
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
               <button class="btn btn-sm" style="background:var(--surface3); color:var(--text1); border:1px solid var(--border-subtle);" onclick="document.getElementById('buyer-profile-modal').remove()">Batal</button>
               <button class="btn btn-g btn-sm" onclick="saveBuyerConfig('${b.name.replace(/'/g, "\\'")}')">Simpan Konfigurasi</button>
+            </div>
+          </div>
+
+          <!-- Bottom Section: Transaction Detail List -->
+          <div style="grid-column: 1 / -1; border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-top: 10px;">
+            <h4 style="margin: 0 0 12px; font-family:'Playfair Display',serif; color:var(--text1); font-size:13px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="history" style="width:18px; height:18px; color:var(--gold);"></i> Riwayat Transaksi Detail
+            </h4>
+            <div class="tbl-w" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 8px;">
+              <table style="width:100%; font-size:11px; border-collapse:collapse;">
+                <thead style="background:var(--surface2); position: sticky; top: 0; z-index: 1;">
+                  <tr style="text-align:left; border-bottom:1px solid var(--border-subtle);">
+                    <th style="padding:8px; color:var(--text2);">Tanggal</th>
+                    <th style="padding:8px; color:var(--text2);">Item</th>
+                    <th style="padding:8px; color:var(--text2); text-align:right;">Volume</th>
+                    <th style="padding:8px; color:var(--text2); text-align:right;">Harga/kg</th>
+                    <th style="padding:8px; color:var(--text2); text-align:right;">Total</th>
+                    <th style="padding:8px; color:var(--text2); text-align:center;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${b.transactions.length === 0 ? `
+                    <tr><td colspan="6" style="padding:20px; text-align:center; color:var(--text3);">Belum ada transaksi</td></tr>
+                  ` : [...b.transactions].reverse().map(t => {
+                    const statusClr = t.payStatus === 'lunas' ? 'var(--green)' : 'var(--red)';
+                    const statusBg = t.payStatus === 'lunas' ? 'var(--bg-green)' : 'var(--bg-red)';
+                    const statusLbl = t.payStatus === 'lunas' ? 'Lunas' : 'Belum Bayar';
+                    return `
+                      <tr style="border-bottom:1px solid var(--border-subtle);">
+                        <td style="padding:8px; font-weight:600; color:var(--text1);">${fmtD(t.date)}</td>
+                        <td style="padding:8px;">${t.item || 'Telur'}</td>
+                        <td style="padding:8px; text-align:right; font-weight:600; color:var(--text1);">${num(t.kg).toFixed(1)} kg</td>
+                        <td style="padding:8px; text-align:right;">${fRp(t.pricePerKg)}</td>
+                        <td style="padding:8px; text-align:right; font-weight:700; color:var(--gold);">${fRp(t.total)}</td>
+                        <td style="padding:8px; text-align:center;">
+                          <span style="font-size:9px; font-weight:700; color:${statusClr}; background:${statusBg}; padding:2px 6px; border-radius:4px;">${statusLbl}</span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -6472,6 +6579,10 @@ function miniCharts(title1,svg1,title2,svg2){
 // ═══════════════════════════════════════════════
 function renderLog(){
   const E=S.logEntries, last=E[E.length-1];
+  let filteredE = E;
+  if (S.log_filterMY) {
+    filteredE = E.filter(e => e.date.slice(0, 7) === S.log_filterMY);
+  }
   const lHDP=last?getHDP(last.butir, last.telurRusak, last.date):null, lHPP=last?getHPP(last.kg, last.date):null;
   const breakdown = last ? getHPPBreakdown(last.kg, last.date) : null;
   const avgHDP=E.length?(E.reduce((s,e)=>s+getHDP(e.butir, e.telurRusak, e.date),0)/E.length).toFixed(1):null;
@@ -6773,12 +6884,42 @@ function renderLog(){
       <button class="btn btn-g" id="log-btn" onclick="submitLog()">${S.l_editId?'Simpan Perubahan':'Simpan Data'}</button>
     </div>
     ${E.length>0?`<div class="card fi" style="overflow:hidden;padding:0">
-      <div style="padding:13px 16px;border-bottom:1px solid var(--border2)" class="ct"><div class="cb"></div><span class="cl">Riwayat Produksi</span></div>
+      <div style="padding:13px 16px;border-bottom:1px solid var(--border2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;" class="ct">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="cb"></div>
+          <span class="cl">Riwayat Produksi</span>
+        </div>
+        <div>
+          <select class="inp" style="padding:4px 8px; font-size:12px; max-width:160px; margin:0;" onchange="S.log_filterMY=this.value; renderLog();">
+            <option value="">Semua Periode</option>
+            ${Array.from(new Set(E.map(e => e.date.slice(0, 7)))).sort().reverse().map(my => `
+              <option value="${my}" ${S.log_filterMY === my ? 'selected' : ''}>${formatMonthYearIndo(my)}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
       
       <!-- Desktop View: Table -->
       <div class="tbl-w desktop-only"><table>
         <thead><tr><th>Tgl</th><th>Butir (Baik)</th><th>BS (Rusak)</th><th>Kg</th><th>HDP</th><th>HPP/kg</th><th>Pakan</th><th>Umur</th>${canDelete?'<th></th>':''}</tr></thead>
-        <tbody>${[...E].reverse().map(e=>{const h=getHDP(e.butir, e.telurRusak, e.date),p=getHPP(e.kg, e.date),mt=hdpM(h);const age=getChickenAge(e.date);return`<tr>
+        <tbody>${(() => {
+          let lastMY = '';
+          return [...filteredE].reverse().map(e=>{
+            const my = e.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <tr style="background: var(--surface3); font-weight: 700; color: var(--text1); border-bottom: 2px solid var(--border);">
+                  <td colspan="${canDelete ? 9 : 8}" style="padding: 8px 12px; font-size: 12px; font-weight: 800; color: var(--gold); text-align: left;">
+                    ${formatMonthYearIndo(my)}
+                  </td>
+                </tr>
+              `;
+            }
+            const h=getHDP(e.butir, e.telurRusak, e.date),p=getHPP(e.kg, e.date),mt=hdpM(h);
+            const age=getChickenAge(e.date);
+            return headerHtml + `<tr>
           <td class="td-d">${fmtD(e.date)}</td>
           <td>${e.butir.toLocaleString('id-ID')}</td>
           <td style="color:${e.telurRusak>0?'var(--red)':'var(--text3)'};font-weight:${e.telurRusak>0?'600':'400'}">${e.telurRusak?e.telurRusak.toLocaleString('id-ID'):'0'}</td>
@@ -6790,16 +6931,30 @@ function renderLog(){
           ${canDelete?`<td style="white-space:nowrap">
             <button onclick="editLog('${e.date}')" style="background:var(--bg-gold);border:none;color:var(--gold);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:3px">${fI('✏️')}</button>
             <button class="del" onclick="delLog('${e.date}')">×</button>
-          </td>`:''}</tr>`;}).join('')}
+          </td>`:''}</tr>`;
+          }).join('');
+        })()}
         </tbody>
       </table></div>
 
       <!-- Mobile View: Card List -->
       <div class="mobile-only" style="padding:10px; display:flex; flex-direction:column; gap:10px;">
-        ${[...E].reverse().map(e=>{
-          const h=getHDP(e.butir, e.telurRusak, e.date),p=getHPP(e.kg, e.date),mt=hdpM(h);
-          const age=getChickenAge(e.date);
-          return `
+        ${(() => {
+          let lastMY = '';
+          return [...filteredE].reverse().map(e=>{
+            const my = e.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-top: 12px; margin-bottom: 4px; padding-left: 4px;">
+                  ${formatMonthYearIndo(my)}
+                </div>
+              `;
+            }
+            const h=getHDP(e.butir, e.telurRusak, e.date),p=getHPP(e.kg, e.date),mt=hdpM(h);
+            const age=getChickenAge(e.date);
+            return headerHtml + `
             <div style="background:var(--surface); border:1px solid var(--border-subtle); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span class="td-d" style="font-size:12px; font-weight:700;">${fmtD(e.date)}</span>
@@ -6827,7 +6982,8 @@ function renderLog(){
               ` : ''}
             </div>
           `;
-        }).join('')}
+        }).join('');
+      })()}
       </div>
     </div>`:''}
     <div class="ig">
@@ -8392,6 +8548,10 @@ function saveFlockConfig() {
 function renderHarga(){
   const H=S.priceHistory;
   const canDelete = S.currentUser && (S.currentUser.role === 'direktur');
+  let filteredH = H;
+  if (S.harga_filterMY) {
+    filteredH = H.filter(h => h.date.slice(0, 7) === S.harga_filterMY);
+  }
 
   document.getElementById('content').innerHTML=`
     <!-- OCR Drag & Drop Price Scanner -->
@@ -8442,26 +8602,69 @@ function renderHarga(){
     <div id="h-out"></div>
     <div id="h-bc"></div>
     ${H.length>0?`<div class="card fi" style="overflow:hidden;padding:0">
-      <div style="padding:13px 16px;border-bottom:1px solid var(--border2)" class="ct"><div class="cb"></div><span class="cl">Riwayat Harga</span></div>
+      <div style="padding:13px 16px;border-bottom:1px solid var(--border2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;" class="ct">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="cb"></div>
+          <span class="cl">Riwayat Harga</span>
+        </div>
+        <div>
+          <select class="inp" style="padding:4px 8px; font-size:12px; max-width:160px; margin:0;" onchange="S.harga_filterMY=this.value; renderHarga();">
+            <option value="">Semua Periode</option>
+            ${Array.from(new Set(H.map(h => h.date.slice(0, 7)))).sort().reverse().map(my => `
+              <option value="${my}" ${S.harga_filterMY === my ? 'selected' : ''}>${formatMonthYearIndo(my)}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
       
       <!-- Desktop View: Table -->
       <div class="tbl-w desktop-only"><table>
         <thead><tr><th>Tanggal</th><th>Acuan</th><th>Grosir</th><th>Eceran</th>${canDelete?'<th></th>':''}</tr></thead>
-        <tbody>${[...H].reverse().map(h=>{const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;return`<tr>
+        <tbody>${(() => {
+          let lastMY = '';
+          return [...filteredH].reverse().map(h=>{
+            const my = h.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <tr style="background: var(--surface3); font-weight: 700; color: var(--text1); border-bottom: 2px solid var(--border);">
+                  <td colspan="${canDelete ? 5 : 4}" style="padding: 8px 12px; font-size: 12px; font-weight: 800; color: var(--gold); text-align: left;">
+                    ${formatMonthYearIndo(my)}
+                  </td>
+                </tr>
+              `;
+            }
+            const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;
+            return headerHtml + `<tr>
           <td class="td-d">${fmtD(h.date)}</td><td>${fRp(h.acuan)}</td>
           <td>${fRp(b+S.spreadG)}</td><td class="td-g">${fRp(b+S.spreadE)}</td>
           ${canDelete?`<td style="white-space:nowrap">
             <button onclick="editPrice('${h.date}')" style="background:var(--bg-gold);border:none;color:var(--gold);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:3px">${fI('✏️')}</button>
             <button class="del" onclick="delPrice('${h.date}')">×</button>
-          </td>`:''}</tr>`;}).join('')}
+          </td>`:''}</tr>`;
+          }).join('');
+        })()}
         </tbody>
       </table></div>
 
       <!-- Mobile View: Card List -->
       <div class="mobile-only" style="padding:10px; display:flex; flex-direction:column; gap:10px;">
-        ${[...H].reverse().map(h=>{
-          const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;
-          return `
+        ${(() => {
+          let lastMY = '';
+          return [...filteredH].reverse().map(h=>{
+            const my = h.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-top: 12px; margin-bottom: 4px; padding-left: 4px;">
+                  ${formatMonthYearIndo(my)}
+                </div>
+              `;
+            }
+            const b=h.acuan<FLOOR_PRICE?FLOOR_PRICE:h.acuan;
+            return headerHtml + `
             <div style="background:var(--surface); border:1px solid var(--border-subtle); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span class="td-d" style="font-size:12px; font-weight:700;">${fmtD(h.date)}</span>
@@ -8485,7 +8688,8 @@ function renderHarga(){
               ` : ''}
             </div>
           `;
-        }).join('')}
+        }).join('');
+      })()}
       </div>
     </div>`:''}`;
 }
@@ -9756,6 +9960,10 @@ function renderBeli(){
   const canDelete = role === 'direktur';
 
   const E = S.purchaseEntries.filter(e => !e.deleted && (!isOperator || e.recordUnit !== 'induk')), td=today();
+  let filteredB = E;
+  if (S.beli_filterMY) {
+    filteredB = E.filter(e => e.date.slice(0, 7) === S.beli_filterMY);
+  }
   const totalBeli=E.reduce((s,e)=>s+num(e.total),0);
   const bd=S.b_date||td, qty=S.b_qty?+S.b_qty:0, price=S.b_price?+S.b_price:0, total=qty*price;
   
@@ -9891,20 +10099,47 @@ function renderBeli(){
   if (!isOperator && E.length > 0) {
     html += `
     <div class="card fi" style="overflow:hidden;padding:0">
-      <div style="padding:13px 16px;border-bottom:1px solid var(--border2)" class="ct"><div class="cb r"></div><span class="cl">Riwayat Pembelian</span></div>
+      <div style="padding:13px 16px;border-bottom:1px solid var(--border2); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;" class="ct">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="cb r"></div>
+          <span class="cl">Riwayat Pembelian</span>
+        </div>
+        <div>
+          <select class="inp" style="padding:4px 8px; font-size:12px; max-width:160px; margin:0;" onchange="S.beli_filterMY=this.value; renderBeli();">
+            <option value="">Semua Periode</option>
+            ${Array.from(new Set(E.map(e => e.date.slice(0, 7)))).sort().reverse().map(my => `
+              <option value="${my}" ${S.beli_filterMY === my ? 'selected' : ''}>${formatMonthYearIndo(my)}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
       
       <!-- Desktop View: Table -->
       <div class="tbl-w desktop-only"><table>
         <thead><tr><th>Tgl</th><th>Unit</th><th>Kat</th><th>Item</th><th>Kas/Bank</th><th>Toko</th><th>Qty</th><th>Total</th><th></th></tr></thead>
-        <tbody>${[...E].reverse().map(e=>{
-          const isInduk = e.recordUnit === 'induk';
-          const cat = isInduk
-            ? (e.cat === 'capex' ? {icon:'🏗️',label:'CAPEX'} : {icon:'💼',label:'OPEX'})
-            : (S.customCats.find(c=>c.id===e.cat)||{icon:'📦',label:e.cat});
-          const rowLocked = isPeriodLocked(e.date);
-          const displayUnit = isInduk ? `${fI('🏛️')} Induk` : `${fI('🥚')} Svarna`;
-          const displayCash = (e.cashAccount || '1.1.01.01 Kas Tunai').split(' ').slice(1).join(' ') || 'Kas Tunai';
-          return`<tr>
+        <tbody>${(() => {
+          let lastMY = '';
+          return [...filteredB].reverse().map(e=>{
+            const my = e.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <tr style="background: var(--surface3); font-weight: 700; color: var(--text1); border-bottom: 2px solid var(--border);">
+                  <td colspan="9" style="padding: 8px 12px; font-size: 12px; font-weight: 800; color: var(--gold); text-align: left;">
+                    ${formatMonthYearIndo(my)}
+                  </td>
+                </tr>
+              `;
+            }
+            const isInduk = e.recordUnit === 'induk';
+            const cat = isInduk
+              ? (e.cat === 'capex' ? {icon:'🏗️',label:'CAPEX'} : {icon:'💼',label:'OPEX'})
+              : (S.customCats.find(c=>c.id===e.cat)||{icon:'📦',label:e.cat});
+            const rowLocked = isPeriodLocked(e.date);
+            const displayUnit = isInduk ? `${fI('🏛️')} Induk` : `${fI('🥚')} Svarna`;
+            const displayCash = (e.cashAccount || '1.1.01.01 Kas Tunai').split(' ').slice(1).join(' ') || 'Kas Tunai';
+            return headerHtml + `<tr>
             <td class="td-d">${fmtD(e.date)}</td>
             <td style="font-size:10px;font-weight:600">${displayUnit}</td>
             <td title="${cat.label}">${fI(cat.icon)}</td>
@@ -9921,21 +10156,35 @@ function renderBeli(){
                 <button onclick="editPurchase('${e.id}')" style="background:var(--bg-gold);border:none;color:var(--gold);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:3px">${fI('✏️')}</button>
                 <button class="del" onclick="delPurchase('${e.id}')">×</button>
               `}
-            </td></tr>`;}).join('')}
+            </td></tr>`;
+          }).join('');
+        })()}
         </tbody>
       </table></div>
 
       <!-- Mobile View: Card List -->
       <div class="mobile-only" style="padding:10px; display:flex; flex-direction:column; gap:10px;">
-        ${[...E].reverse().map(e=>{
-          const isInduk = e.recordUnit === 'induk';
-          const cat = isInduk
-            ? (e.cat === 'capex' ? {icon:'🏗️',label:'CAPEX'} : {icon:'💼',label:'OPEX'})
-            : (S.customCats.find(c=>c.id===e.cat)||{icon:'📦',label:e.cat});
-          const rowLocked = isPeriodLocked(e.date);
-          const displayUnit = isInduk ? `${fI('🏛️')} Induk` : `${fI('🥚')} Svarna`;
-          const displayCash = (e.cashAccount || '1.1.01.01 Kas Tunai').split(' ').slice(1).join(' ') || 'Kas Tunai';
-          return `
+        ${(() => {
+          let lastMY = '';
+          return [...filteredB].reverse().map(e=>{
+            const my = e.date.slice(0, 7);
+            let headerHtml = '';
+            if (my !== lastMY) {
+              lastMY = my;
+              headerHtml = `
+                <div style="font-size: 12px; font-weight: 800; color: var(--gold); margin-top: 12px; margin-bottom: 4px; padding-left: 4px;">
+                  ${formatMonthYearIndo(my)}
+                </div>
+              `;
+            }
+            const isInduk = e.recordUnit === 'induk';
+            const cat = isInduk
+              ? (e.cat === 'capex' ? {icon:'🏗️',label:'CAPEX'} : {icon:'💼',label:'OPEX'})
+              : (S.customCats.find(c=>c.id===e.cat)||{icon:'📦',label:e.cat});
+            const rowLocked = isPeriodLocked(e.date);
+            const displayUnit = isInduk ? `${fI('🏛️')} Induk` : `${fI('🥚')} Svarna`;
+            const displayCash = (e.cashAccount || '1.1.01.01 Kas Tunai').split(' ').slice(1).join(' ') || 'Kas Tunai';
+            return headerHtml + `
             <div style="background:var(--surface); border:1px solid var(--border-subtle); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span class="td-d" style="font-size:12px; font-weight:700;">${fmtD(e.date)}</span>
@@ -9975,7 +10224,8 @@ function renderBeli(){
               </div>
             </div>
           `;
-        }).join('')}
+        }).join('');
+      })()}
       </div>
     </div>
     <div class="row-sb"><span style="font-size:12px;color:var(--text2)">Total Pembelian</span>
